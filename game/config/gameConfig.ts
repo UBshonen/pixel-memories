@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 
 import { BootScene } from "../scenes/BootScene";
+import { WorldScene } from "../scenes/WorldScene";
 
 /**
  * 게임의 기준 해상도.
@@ -31,6 +32,15 @@ export function createGame(parent: HTMLElement) {
       width: GAME_WIDTH,
       height: GAME_HEIGHT,
     },
-    scene: [BootScene],
+    physics: {
+      default: "arcade",
+      arcade: {
+        // 위에서 내려다보는 시점이라 중력이 없다.
+        gravity: { x: 0, y: 0 },
+        // true로 바꾸면 충돌 범위가 초록색 상자로 보인다. 디버깅용.
+        debug: false,
+      },
+    },
+    scene: [BootScene, WorldScene], // 첫 번째 Scene만 자동으로 시작된다
   });
 }
