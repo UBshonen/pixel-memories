@@ -84,8 +84,6 @@ export class WorldScene extends Phaser.Scene {
   private walkable: boolean[][] = [];
   private autoWalk: AutoWalk | null = null;
 
-  /** 화면의 방향 버튼이 누르고 있는 방향. React에서 이벤트로 전달받는다. */
-  private padDirection = new Phaser.Math.Vector2(0, 0);
 
   constructor() {
     super("WorldScene");
@@ -417,28 +415,16 @@ export class WorldScene extends Phaser.Scene {
       keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
       keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER),
     ];
-
-    // React의 방향 버튼에서 오는 신호. 지금까지와 반대 방향으로 흐르는 유일한 통로다.
-    const onSetDirection = (direction: { x: number; y: number }) => {
-      this.padDirection.set(direction.x, direction.y);
-    };
-
-    this.game.events.on(GAME_EVENT.SET_DIRECTION, onSetDirection);
-
-    // Scene이 정리될 때 구독을 해제하지 않으면 게임을 다시 만들 때마다 쌓인다.
-    this.events.once("shutdown", () => {
-      this.game.events.off(GAME_EVENT.SET_DIRECTION, onSetDirection);
-    });
   }
 
   /**
    * 매 프레임 플레이어의 속도를 정한다.
    *
-   * 우선순위: 키보드 · 방향 버튼 > 자동 이동
-   * 직접 조작하면 자동 이동은 즉시 취소된다.
+   * 우선순위: 키보드 > 자동 이동
+   * 키를 누르면 자동 이동은 즉시 취소된다. 직접 조작이 항상 이긴다.
    */
   private movePlayer(time: number) {
-    const manual = this.readKeyboardDirection() ?? this.readPadDirection();
+    const manual = this.readKeyboardDirection();
 
     if (manual) {
       this.autoWalk = null;
@@ -536,15 +522,6 @@ export class WorldScene extends Phaser.Scene {
     }
 
     return new Phaser.Math.Vector2(next.x - this.player.x, next.y - this.player.y).normalize();
-  }
-
-  /** 화면의 방향 버튼. 누르고 있지 않으면 null. */
-  private readPadDirection(): Phaser.Math.Vector2 | null {
-    if (this.padDirection.x === 0 && this.padDirection.y === 0) {
-      return null;
-    }
-
-    return this.padDirection.clone().normalize();
   }
 
   // ────────────────────────────────────────────────────────────

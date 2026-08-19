@@ -3,13 +3,11 @@
 import type { Game } from "phaser";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import DirectionPad from "@/components/controls/DirectionPad";
 import DialogueBox from "@/components/dialogue/DialogueBox";
 import MemoryModal from "@/components/memory/MemoryModal";
 import WeddingInfo from "@/components/wedding/WeddingInfo";
 import { findDialogue } from "@/data/dialogues";
 import { findMemory } from "@/data/memories";
-import { SHOW_DIRECTION_PAD } from "@/game/controls";
 import { GAME_EVENT } from "@/game/events";
 import type { Dialogue, Memory } from "@/types";
 
@@ -76,11 +74,6 @@ export default function GameCanvas() {
     };
   }, []);
 
-  /** 방향 버튼이 눌린 상태를 게임 쪽으로 보낸다. */
-  const sendDirection = useCallback((direction: { x: number; y: number }) => {
-    gameRef.current?.events.emit(GAME_EVENT.SET_DIRECTION, direction);
-  }, []);
-
   const closeOverlay = useCallback(() => {
     setMemory(null);
     setDialogue(null);
@@ -88,14 +81,9 @@ export default function GameCanvas() {
     gameRef.current?.scene.resume("WorldScene");
   }, []);
 
-  const overlayOpen = memory !== null || dialogue !== null || weddingOpen;
-
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
-
-      {/* 창이 열려 있는 동안에는 방향 버튼을 숨긴다. 대화창과 자리가 겹친다. */}
-      {SHOW_DIRECTION_PAD && !overlayOpen && <DirectionPad onChange={sendDirection} />}
 
       {memory && <MemoryModal memory={memory} onClose={closeOverlay} />}
       {dialogue && <DialogueBox dialogue={dialogue} onClose={closeOverlay} />}
