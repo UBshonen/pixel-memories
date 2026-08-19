@@ -110,6 +110,56 @@ export function findPath(
   return null;
 }
 
+/**
+ * 누른 칸이 벽이면 근처에서 갈 수 있는 칸을 찾아준다.
+ *
+ * 나무 가장자리를 살짝 빗나가게 눌렀을 때 아무 반응이 없으면 답답하다.
+ * 가까운 순서로 넓혀가며 찾고, 반경 안에 없으면 null.
+ */
+export function nearestWalkable(
+  walkable: boolean[][],
+  tile: TilePoint,
+  maxRadius = 2,
+): TilePoint | null {
+  const height = walkable.length;
+  const width = walkable[0]?.length ?? 0;
+
+  const isOpen = (x: number, y: number) =>
+    y >= 0 && y < height && x >= 0 && x < width && walkable[y][x];
+
+  if (isOpen(tile.x, tile.y)) {
+    return tile;
+  }
+
+  for (let radius = 1; radius <= maxRadius; radius++) {
+    let best: TilePoint | null = null;
+    let bestDistance = Infinity;
+
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        // 이번 반경의 테두리만 본다. 안쪽은 이미 살펴봤다.
+        if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
+
+        const x = tile.x + dx;
+        const y = tile.y + dy;
+
+        if (!isOpen(x, y)) continue;
+
+        const distance = dx * dx + dy * dy;
+
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = { x, y };
+        }
+      }
+    }
+
+    if (best) return best;
+  }
+
+  return null;
+}
+
 const NEIGHBOURS: [number, number][] = [
   [1, 0],
   [-1, 0],

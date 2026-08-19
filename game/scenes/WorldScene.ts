@@ -3,7 +3,12 @@ import Phaser from "phaser";
 import type { WorldObject } from "@/types";
 
 import { GAME_EVENT } from "../events";
-import { buildWalkableGrid, findPath, type TilePoint } from "../maps/pathfinding";
+import {
+  buildWalkableGrid,
+  findPath,
+  nearestWalkable,
+  type TilePoint,
+} from "../maps/pathfinding";
 import { parseMapArt, SPAWN_TILE } from "../maps/villageMap";
 import { VILLAGE_OBJECTS } from "../maps/villageObjects";
 import {
@@ -29,9 +34,6 @@ const CAMERA_ZOOM = 2;
 /** 걷는 속도 (초당 픽셀). 타일 한 칸이 16px이므로 초당 약 5.3칸. */
 const WALK_SPEED = 85;
 
-/** 손가락을 이 거리 안까지 따라가면 멈춘다. 목적지에서 떠는 것을 막는다. */
-const TOUCH_STOP_DISTANCE = 4;
-
 /** 이 거리 안에 들어오면 상호작용할 수 있다. 타일 약 1.5칸. */
 const INTERACT_RANGE = 24;
 
@@ -47,9 +49,10 @@ type Interactable = {
   sprite: Phaser.Physics.Arcade.Sprite;
 };
 
-/** 오브젝트를 눌렀을 때 그쪽으로 걸어가는 중인 상태 */
+/** 어딘가로 자동으로 걸어가는 중인 상태 */
 type AutoWalk = {
-  target: Interactable;
+  /** 오브젝트를 향해 가는 중이면 그 오브젝트. 빈 땅으로 가는 중이면 null. */
+  target: Interactable | null;
   /** 아직 지나가야 할 지점들 (픽셀 좌표) */
   waypoints: Phaser.Math.Vector2[];
   /** 마지막으로 눈에 띄게 움직인 시각과 그때의 위치 */
@@ -77,8 +80,8 @@ export class WorldScene extends Phaser.Scene {
   private walkable: boolean[][] = [];
   private autoWalk: AutoWalk | null = null;
 
-  /** 오브젝트를 눌러서 처리한 프레임에는 "손가락 쪽으로 걷기"를 하지 않는다. */
-  private pointerConsumed = false;
+  /** 화면의 방향 버튼이 누르고 있는 방향. React에서 이벤트로 전달받는다. */
+  private padDirection = new Phaser.Math.Vector2(0, 0);
 
   constructor() {
     super("WorldScene");
@@ -96,6 +99,62 @@ export class WorldScene extends Phaser.Scene {
     this.createPrompt();
     this.createControls();
     this.createCamera(map);
+  }
+
+  /**
+   * 빈 땅을 눌렀을 때 그 지점으로 걸어간다.
+   *
+   * 오브젝트를 눌렀을 때는 각 스프라이트의 핸들러가 먼저 처리하므로
+   * 여기서는 아무것도 눌리지 않은 경우만 다룬다.
+   */
+  private handleGroundTap(pointer: Phaser.Input.Pointer) {
+    const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    const tapped = pixelToTile(world.x, world.y);
+
+    // 나무 가장자리를 살짝 빗나가게 눌러도 근처 갈 수 있는 칸으로 보정한다.
+    const goal = nearestWalkable(this.walkable, tapped);
+
+    if (!goal) return;
+
+    this.walkTo(goal, null);
+  }
+
+  /** 누른 자리에 잠깐 나타났다 사라지는 표시 */
+  private showTapMarker(x: number, y: number) {
+    const marker = this.add.circle(x, y, 4, 0xf4b41b, 0.5).setDepth(9_999);
+
+    this.tweens.add({
+      targets: marker,
+      scale: 2.5,
+      alpha: 0,
+      duration: 300,
+      ease: "Quad.Out",
+      onComplete: () => marker.destroy(),
+    });
+  }
+
+  /** 목적지 칸까지 길을 찾아 자동 이동을 시작한다. */
+  private walkTo(goal: TilePoint, target: Interactable | null) {
+    const start = pixelToTile(this.player.x, this.player.y);
+    const path = findPath(this.walkable, start, goal);
+
+    if (!path || path.length === 0) return;
+
+    const waypoints = path.map(({ x, y }) => {
+      const center = tileToPixelCenter(x, y);
+      return new Phaser.Math.Vector2(center.x, center.y);
+    });
+
+    const destination = waypoints[waypoints.length - 1];
+    this.showTapMarker(destination.x, destination.y);
+
+    this.autoWalk = {
+      target,
+      waypoints,
+      lastProgressAt: this.time.now,
+      lastX: this.player.x,
+      lastY: this.player.y,
+    };
   }
 
   update(time: number) {
@@ -209,7 +268,6 @@ export class WorldScene extends Phaser.Scene {
       // 오브젝트를 누르면 그쪽으로 걸어간다. (가까우면 바로 상호작용)
       sprite.setInteractive({ useHandCursor: true });
       sprite.on("pointerdown", () => {
-        this.pointerConsumed = true;
         this.approach({ data, sprite });
       });
 
@@ -218,10 +276,16 @@ export class WorldScene extends Phaser.Scene {
 
     this.physics.add.collider(this.player, group);
 
-    // 오브젝트가 아닌 곳을 눌렀다가 떼면 다시 이동할 수 있게 한다.
-    this.input.on("pointerup", () => {
-      this.pointerConsumed = false;
-    });
+    // 아무 오브젝트도 눌리지 않았을 때만 땅을 누른 것으로 본다.
+    // currentlyOver는 이번 터치가 닿은 오브젝트 목록이다.
+    this.input.on(
+      "pointerdown",
+      (pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) => {
+        if (currentlyOver.length > 0) return;
+
+        this.handleGroundTap(pointer);
+      },
+    );
   }
 
   /** 가장 가까운 오브젝트 위에 떠 있는 안내 표시 */
@@ -294,25 +358,7 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    const start = pixelToTile(this.player.x, this.player.y);
-    const goal = { x: item.data.tileX, y: item.data.tileY };
-    const path = findPath(this.walkable, start, goal);
-
-    if (!path) {
-      // 갈 수 있는 길이 없다. 조용히 무시한다.
-      return;
-    }
-
-    this.autoWalk = {
-      target: item,
-      waypoints: path.map(({ x, y }) => {
-        const center = tileToPixelCenter(x, y);
-        return new Phaser.Math.Vector2(center.x, center.y);
-      }),
-      lastProgressAt: this.time.now,
-      lastX: this.player.x,
-      lastY: this.player.y,
-    };
+    this.walkTo({ x: item.data.tileX, y: item.data.tileY }, item);
   }
 
   /**
@@ -367,22 +413,35 @@ export class WorldScene extends Phaser.Scene {
       keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
       keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER),
     ];
+
+    // React의 방향 버튼에서 오는 신호. 지금까지와 반대 방향으로 흐르는 유일한 통로다.
+    const onSetDirection = (direction: { x: number; y: number }) => {
+      this.padDirection.set(direction.x, direction.y);
+    };
+
+    this.game.events.on(GAME_EVENT.SET_DIRECTION, onSetDirection);
+
+    // Scene이 정리될 때 구독을 해제하지 않으면 게임을 다시 만들 때마다 쌓인다.
+    this.events.once("shutdown", () => {
+      this.game.events.off(GAME_EVENT.SET_DIRECTION, onSetDirection);
+    });
   }
 
   /**
    * 매 프레임 플레이어의 속도를 정한다.
    *
-   * 우선순위: 키보드 > 자동 이동 > 손가락 방향
-   * 키를 누르면 자동 이동은 취소된다. 직접 조작이 항상 이긴다.
+   * 우선순위: 키보드 · 방향 버튼 > 자동 이동
+   * 직접 조작하면 자동 이동은 즉시 취소된다.
    */
   private movePlayer(time: number) {
-    const keyboard = this.readKeyboardDirection();
+    const manual = this.readKeyboardDirection() ?? this.readPadDirection();
 
-    if (keyboard) {
+    if (manual) {
       this.autoWalk = null;
     }
 
-    const velocity = keyboard ?? this.readAutoWalkDirection(time) ?? this.readPointerDirection();
+    const velocity =
+      manual ?? this.readAutoWalkDirection(time) ?? new Phaser.Math.Vector2(0, 0);
 
     this.player.setVelocity(velocity.x * WALK_SPEED, velocity.y * WALK_SPEED);
     this.player.setDepth(this.player.y);
@@ -427,10 +486,11 @@ export class WorldScene extends Phaser.Scene {
 
     if (!walk) return null;
 
-    // 목적지에 충분히 가까워졌으면 멈추고 연다.
-    if (this.distanceTo(walk.target.sprite) <= INTERACT_RANGE) {
+    // 오브젝트를 향해 가는 중이고 충분히 가까워졌으면 멈추고 연다.
+    if (walk.target && this.distanceTo(walk.target.sprite) <= INTERACT_RANGE) {
+      const { data } = walk.target;
       this.autoWalk = null;
-      this.interactWith(walk.target.data);
+      this.interactWith(data);
       return new Phaser.Math.Vector2(0, 0);
     }
 
@@ -474,26 +534,13 @@ export class WorldScene extends Phaser.Scene {
     return new Phaser.Math.Vector2(next.x - this.player.x, next.y - this.player.y).normalize();
   }
 
-  private readPointerDirection(): Phaser.Math.Vector2 {
-    const pointer = this.input.activePointer;
-
-    if (!pointer.isDown || this.pointerConsumed) {
-      return new Phaser.Math.Vector2(0, 0);
+  /** 화면의 방향 버튼. 누르고 있지 않으면 null. */
+  private readPadDirection(): Phaser.Math.Vector2 | null {
+    if (this.padDirection.x === 0 && this.padDirection.y === 0) {
+      return null;
     }
 
-    // 화면 좌표를 맵 좌표로 바꾼다. 카메라가 움직이고 확대돼 있으므로 둘은 다르다.
-    const target = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-
-    const direction = new Phaser.Math.Vector2(
-      target.x - this.player.x,
-      target.y - this.player.y,
-    );
-
-    if (direction.length() < TOUCH_STOP_DISTANCE) {
-      return new Phaser.Math.Vector2(0, 0);
-    }
-
-    return direction.normalize();
+    return this.padDirection.clone().normalize();
   }
 
   // ────────────────────────────────────────────────────────────

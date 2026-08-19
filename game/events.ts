@@ -19,4 +19,12 @@ export const GAME_EVENT = {
   OPEN_DIALOGUE: "pm:open-dialogue",
   /** 예식장과 상호작용했다. payload 없음 */
   OPEN_WEDDING: "pm:open-wedding",
+
+  /**
+   * React → Phaser 방향. 지금까지와 반대로 흐르는 유일한 신호다.
+   *
+   * 화면의 방향 버튼이 눌린 상태를 알린다.
+   * payload: { x, y } — 각각 -1 / 0 / 1. 손을 떼면 { x: 0, y: 0 }.
+   */
+  SET_DIRECTION: "pm:set-direction",
 } as const;
