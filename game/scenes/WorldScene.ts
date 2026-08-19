@@ -1,11 +1,17 @@
 import Phaser from "phaser";
 
+import type { WorldObject } from "@/types";
+
+import { GAME_EVENT } from "../events";
 import { parseMapArt, SPAWN_TILE } from "../maps/villageMap";
+import { VILLAGE_OBJECTS } from "../maps/villageObjects";
 import {
-  PLAYER_HEIGHT,
+  FRAME_KEY,
+  PERSON_HEIGHT,
+  PERSON_WIDTH,
   PLAYER_KEY,
-  PLAYER_WIDTH,
   TILESET_KEY,
+  VILLAGER_KEY,
 } from "../textures/placeholderTextures";
 import { SOLID_TILES, TILE_SIZE } from "../tiles";
 
@@ -15,15 +21,32 @@ const WALK_SPEED = 70;
 /** 손가락을 이 거리 안까지 따라가면 멈춘다. 목적지에서 떠는 것을 막는다. */
 const TOUCH_STOP_DISTANCE = 4;
 
+/** 이 거리 안에 들어오면 상호작용할 수 있다. 타일 약 1.5칸. */
+const INTERACT_RANGE = 24;
+
+/** 오브젝트와 그 오브젝트를 나타내는 스프라이트를 함께 들고 다닌다. */
+type Interactable = {
+  data: WorldObject;
+  sprite: Phaser.Physics.Arcade.Sprite;
+};
+
 /**
  * 실제로 돌아다니는 공간.
  *
- * 맵 → 플레이어 → 조작 → 카메라 순서로 만든다.
+ * 맵 → 플레이어 → 오브젝트 → 조작 → 카메라 순서로 만든다.
  */
 export class WorldScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: Record<"up" | "down" | "left" | "right", Phaser.Input.Keyboard.Key>;
+  private interactKeys!: Phaser.Input.Keyboard.Key[];
+
+  private interactables: Interactable[] = [];
+  private nearest: Interactable | null = null;
+  private prompt!: Phaser.GameObjects.Text;
+
+  /** 오브젝트를 눌러서 상호작용한 프레임에는 이동 명령을 무시한다. */
+  private pointerConsumed = false;
 
   constructor() {
     super("WorldScene");
@@ -35,11 +58,15 @@ export class WorldScene extends Phaser.Scene {
     this.createPlayer();
     this.physics.add.collider(this.player, layer);
 
+    this.createInteractables();
+    this.createPrompt();
     this.createControls();
     this.createCamera(map);
   }
 
-  update() {
+  update(time: number) {
+    this.updateNearest(time);
+    this.handleInteractKey();
     this.movePlayer();
   }
 
@@ -86,8 +113,7 @@ export class WorldScene extends Phaser.Scene {
   // ────────────────────────────────────────────────────────────
 
   private createPlayer() {
-    const x = SPAWN_TILE.x * TILE_SIZE + TILE_SIZE / 2;
-    const y = SPAWN_TILE.y * TILE_SIZE + TILE_SIZE / 2;
+    const { x, y } = tileToPixelCenter(SPAWN_TILE.x, SPAWN_TILE.y);
 
     this.player = this.physics.add.sprite(x, y, PLAYER_KEY, 0);
     this.player.setCollideWorldBounds(true);
@@ -95,7 +121,10 @@ export class WorldScene extends Phaser.Scene {
     // 충돌 판정은 몸 전체가 아니라 발 근처만 쓴다.
     // 위에서 내려다보는 시점에서는 이래야 벽에 자연스럽게 붙는다.
     this.player.body?.setSize(8, 6);
-    this.player.body?.setOffset((PLAYER_WIDTH - 8) / 2, PLAYER_HEIGHT - 6);
+    this.player.body?.setOffset((PERSON_WIDTH - 8) / 2, PERSON_HEIGHT - 6);
+
+    // 아래쪽에 있는 것이 앞에 그려지도록 y값을 깊이로 쓴다.
+    this.player.setDepth(this.player.y);
 
     this.anims.create({
       key: "player-idle",
@@ -116,6 +145,128 @@ export class WorldScene extends Phaser.Scene {
     });
 
     this.player.play("player-idle");
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // 상호작용 오브젝트
+  // ────────────────────────────────────────────────────────────
+
+  private createInteractables() {
+    const group = this.physics.add.staticGroup();
+
+    this.interactables = VILLAGE_OBJECTS.map((data) => {
+      const { x, y } = tileToPixelCenter(data.tileX, data.tileY);
+
+      const textureKey = data.kind === "frame" ? FRAME_KEY : VILLAGER_KEY;
+      const frame = data.kind === "frame" ? undefined : (data.variant ?? 0);
+
+      const sprite = group.create(x, y, textureKey, frame) as Phaser.Physics.Arcade.Sprite;
+
+      // 발밑만 막는다. 그래야 위쪽으로 지나갈 때 자연스럽다.
+      sprite.body?.setSize(10, 6);
+      sprite.setDepth(sprite.y);
+
+      // 오브젝트를 직접 눌러도 상호작용되게 한다. (모바일)
+      sprite.setInteractive({ useHandCursor: true });
+      sprite.on("pointerdown", () => {
+        this.pointerConsumed = true;
+
+        if (this.isInRange(sprite)) {
+          this.interactWith(data);
+        }
+      });
+
+      return { data, sprite };
+    });
+
+    this.physics.add.collider(this.player, group);
+
+    // 오브젝트가 아닌 곳을 눌렀다가 떼면 다시 이동할 수 있게 한다.
+    this.input.on("pointerup", () => {
+      this.pointerConsumed = false;
+    });
+  }
+
+  /** 가장 가까운 오브젝트 위에 떠 있는 안내 표시 */
+  private createPrompt() {
+    this.prompt = this.add
+      .text(0, 0, "▼", {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        color: "#f4b41b",
+      })
+      .setOrigin(0.5, 1)
+      .setDepth(10_000)
+      .setVisible(false);
+
+    // 위아래로 흔드는 것은 tween이 아니라 update()에서 직접 계산한다.
+    // tween은 y값을 자기가 붙잡고 있어서, 매 프레임 위치를 옮기는 것과 충돌한다.
+  }
+
+  private isInRange(sprite: Phaser.GameObjects.Sprite) {
+    return (
+      Phaser.Math.Distance.Between(this.player.x, this.player.y, sprite.x, sprite.y) <=
+      INTERACT_RANGE
+    );
+  }
+
+  /** 매 프레임 가장 가까운 오브젝트를 찾아 안내 표시를 옮긴다. */
+  private updateNearest(time: number) {
+    let closest: Interactable | null = null;
+    let closestDistance = INTERACT_RANGE;
+
+    for (const item of this.interactables) {
+      const distance = Phaser.Math.Distance.Between(
+        this.player.x,
+        this.player.y,
+        item.sprite.x,
+        item.sprite.y,
+      );
+
+      if (distance <= closestDistance) {
+        closest = item;
+        closestDistance = distance;
+      }
+    }
+
+    this.nearest = closest;
+
+    if (!closest) {
+      this.prompt.setVisible(false);
+      return;
+    }
+
+    // 오브젝트 머리 위에 두고, 사인 곡선으로 위아래로 흔든다.
+    const bob = Math.sin(time / 200) * 2;
+    const baseY = closest.sprite.y - closest.sprite.displayHeight / 2 - 2;
+
+    this.prompt.setPosition(closest.sprite.x, baseY + bob);
+    this.prompt.setVisible(true);
+  }
+
+  private handleInteractKey() {
+    const pressed = this.interactKeys.some((key) => Phaser.Input.Keyboard.JustDown(key));
+
+    if (pressed && this.nearest) {
+      this.interactWith(this.nearest.data);
+    }
+  }
+
+  /**
+   * 여기가 Phaser에서 React로 넘어가는 지점이다.
+   *
+   * Scene은 무엇을 보여줄지 모른다. "이 id의 추억을 열어달라"고 알릴 뿐이다.
+   * 모달을 어떻게 그릴지는 React가 정한다.
+   */
+  private interactWith(object: WorldObject) {
+    const event =
+      object.kind === "frame" ? GAME_EVENT.OPEN_MEMORY : GAME_EVENT.OPEN_DIALOGUE;
+
+    // 창이 열려 있는 동안 캐릭터가 계속 걷지 않도록 멈춘다.
+    this.player.setVelocity(0, 0);
+    this.player.play("player-idle");
+
+    this.game.events.emit(event, object.targetId);
   }
 
   // ────────────────────────────────────────────────────────────
@@ -143,6 +294,11 @@ export class WorldScene extends Phaser.Scene {
       down: keys.S,
       right: keys.D,
     };
+
+    this.interactKeys = [
+      keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
+      keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER),
+    ];
   }
 
   /**
@@ -155,6 +311,7 @@ export class WorldScene extends Phaser.Scene {
     const velocity = this.readKeyboardDirection() ?? this.readPointerDirection();
 
     this.player.setVelocity(velocity.x * WALK_SPEED, velocity.y * WALK_SPEED);
+    this.player.setDepth(this.player.y);
 
     const isMoving = velocity.x !== 0 || velocity.y !== 0;
 
@@ -189,7 +346,7 @@ export class WorldScene extends Phaser.Scene {
   private readPointerDirection(): Phaser.Math.Vector2 {
     const pointer = this.input.activePointer;
 
-    if (!pointer.isDown) {
+    if (!pointer.isDown || this.pointerConsumed) {
       return new Phaser.Math.Vector2(0, 0);
     }
 
@@ -221,4 +378,12 @@ export class WorldScene extends Phaser.Scene {
     // lerp 0.1 — 즉시 따라붙지 않고 살짝 부드럽게 쫓아온다.
     camera.startFollow(this.player, true, 0.1, 0.1);
   }
+}
+
+/** 타일 좌표를 그 타일 한가운데의 픽셀 좌표로 바꾼다. */
+function tileToPixelCenter(tileX: number, tileY: number) {
+  return {
+    x: tileX * TILE_SIZE + TILE_SIZE / 2,
+    y: tileY * TILE_SIZE + TILE_SIZE / 2,
+  };
 }
