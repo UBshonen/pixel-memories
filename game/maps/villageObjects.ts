@@ -20,6 +20,14 @@ export const VILLAGE_OBJECTS: WorldObject[] = [
     targetId: "wedding",
   },
   {
+    // 광장 갈림길. 처음 입장했을 때 바로 눈에 들어오는 자리다.
+    id: "obj-signpost-plaza",
+    kind: "signpost",
+    tileX: 12,
+    tileY: 23,
+    targetId: "signpost-plaza",
+  },
+  {
     id: "obj-frame-first-meeting",
     kind: "frame",
     tileX: 14,

@@ -19,4 +19,6 @@ export const GAME_EVENT = {
   OPEN_DIALOGUE: "pm:open-dialogue",
   /** 예식장과 상호작용했다. payload 없음 */
   OPEN_WEDDING: "pm:open-wedding",
+  /** 표지판과 상호작용했다. payload: signpost id */
+  OPEN_SIGNPOST: "pm:open-signpost",
 } as const;

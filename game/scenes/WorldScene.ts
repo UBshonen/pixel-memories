@@ -18,6 +18,7 @@ import {
   PERSON_HEIGHT,
   PERSON_WIDTH,
   PLAYER_KEY,
+  SIGNPOST_KEY,
   TILESET_KEY,
   VENUE_KEY,
   VILLAGER_KEY,
@@ -456,8 +457,7 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    const event =
-      object.kind === "frame" ? GAME_EVENT.OPEN_MEMORY : GAME_EVENT.OPEN_DIALOGUE;
+    const event = EVENT_BY_KIND[object.kind];
 
     this.game.events.emit(event, object.targetId);
   }
@@ -618,12 +618,21 @@ export class WorldScene extends Phaser.Scene {
   }
 }
 
+/** 오브젝트 종류마다 React에 보낼 신호가 다르다. venue는 payload가 없어 따로 처리한다. */
+const EVENT_BY_KIND: Record<Exclude<WorldObject["kind"], "venue">, string> = {
+  frame: GAME_EVENT.OPEN_MEMORY,
+  villager: GAME_EVENT.OPEN_DIALOGUE,
+  signpost: GAME_EVENT.OPEN_SIGNPOST,
+};
+
 function textureKeyFor(object: WorldObject) {
   switch (object.kind) {
     case "frame":
       return FRAME_KEY;
     case "venue":
       return VENUE_KEY;
+    case "signpost":
+      return SIGNPOST_KEY;
     default:
       return VILLAGER_KEY;
   }

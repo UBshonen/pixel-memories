@@ -11,20 +11,17 @@
 
 ## 한 줄 요약
 
-**보낼 수 있는 청첩장이 됐다.** 마을을 돌아다니며 추억을 보고, 예식장에서 날짜·장소·
-오시는 길을 확인하고, 길찾기 버튼으로 지도 앱을 열 수 있다. MVP 3 달성.
-
-다음은 모바일 UX 다듬기.
+**청첩장으로서 필요한 것이 전부 들어갔다.** 남은 건 그림과 실제 내용, 그리고 배포다.
 
 ## 지금 동작하는 것
 
 ```text
 npm run dev  →  localhost:3000
 
-512 x 768 픽셀 마을 (32 x 48 타일), 화면에 7.5 x 13.3 칸 (3배 확대)
-캐릭터 걷기 · 충돌 · 카메라 추적
-액자 4 + 주민 2 + 예식장 1
+시작 화면 [입장하기] → 누르면 그때 게임이 만들어진다
 
+512 x 768 픽셀 마을 (32 x 48 타일), 화면에 7.5 x 13.3 칸 (3배 확대)
+액자 4 + 주민 2 + 예식장 1 + 표지판 1
 길잡이 고양이 1마리 + 나비 7마리
 
 조작 — 화면에 버튼이 하나도 없다
@@ -34,6 +31,15 @@ npm run dev  →  localhost:3000
   스페이스 / 엔터       가까운 오브젝트 열기
 
   키보드를 쓰면 자동 이동은 즉시 취소된다.
+
+결혼식 정보 창
+  혼주 · 날짜 · 장소 · 픽셀 약도 · 오시는 길
+  카카오맵 / 네이버지도 길찾기 (API 키 없이 지도 앱을 연다)
+  전화 걸기 · 마음 전하실 곳(접힘, 복사 버튼) · 청첩장 공유하기
+
+카카오톡 미리보기
+  app/opengraph-image.tsx 가 1200x630 PNG를 코드로 그린다
+  data/wedding.ts를 고치면 이미지도 같이 바뀐다
 ```
 
 그래픽은 전부 **코드로 그린 임시 그림**이고, 사진과 약도는 `public/`의 SVG다.
@@ -41,10 +47,18 @@ npm run dev  →  localhost:3000
 ## 조정하기 쉬운 값 (전부 WorldScene.ts 상단)
 
 ```text
-CAMERA_ZOOM     2     확대 배율. 정수로 두어야 픽셀이 안 뭉개진다
+CAMERA_ZOOM     3     확대 배율. 정수로 두어야 픽셀이 안 뭉개진다
 WALK_SPEED      85    초당 픽셀. 16px가 한 칸
 INTERACT_RANGE  24    이 거리 안이면 ▼가 뜨고 상호작용 가능
 ```
+
+## 복사 · 공유는 배포 후에야 제대로 된다
+
+`navigator.clipboard`와 `navigator.share`는 **https 또는 localhost에서만** 동작한다.
+폰에서 `http://172.24.x.x:3000` 으로 테스트하면 둘 다 없는 값이 된다.
+
+`lib/clipboard.ts`에 옛날 방식(execCommand) 대비책을 넣어 두어 복사는 되지만,
+**공유 버튼은 폰 테스트에서 "링크가 복사됐어요"로만 동작한다.** 배포하면 공유창이 열린다.
 
 ## Phaser ↔ React 연결
 
@@ -83,23 +97,39 @@ Scene은 **무엇을 보여줄지 모른다.** id만 던진다. 화면은 React�
 
 지금은 오브젝트 클릭에만 쓰지만, 빈 땅을 눌러 그리로 걸어가게 만들 수도 있다.
 
-## 다음 작업 — 단계 1 · 확정
+## 다음 작업 — 단계 2 · 그래픽
 
-**그림 작업을 막고 있는 결정들.** 전부 폰에서 만져봐야 정해진다.
-여기서 나오는 결론이 곧 그림 발주서가 된다.
+단계 1(확정)과 단계 3(청첩장 필수 요소)은 끝났다.
 
 ```text
-[x] 조작 방식      탭 이동으로 결정. 화면 버튼 없음
-[x] 카메라 배율     3배로 결정
-[x] 타일 크기      16px 유지 (3배 확대와 함께 사실상 확정)
-[ ] 캐릭터 방향 수  정면 1방향(현재) vs 4방향 → 그림 양 4배 차이
-[ ] 화면 비율 대응  기기별 세로 길이 차이
+[x] 조작 방식      탭 이동. 화면 버튼 없음
+[x] 카메라 배율     3배
+[x] 타일 크기      16px
+[x] 캐릭터 방향 수  4방향으로 결정
+[x] 화면 비율      폰에서 안 잘림. 대응 불필요
 ```
 
-캐릭터는 지금 정면 그림 하나를 좌우로만 뒤집어 쓴다. 위로 걸어도 얼굴이 보인다.
+### 그림 발주서 (전부 임시 그림을 교체하는 작업)
 
-**남은 전체 계획은 [BLUEPRINT.md](BLUEPRINT.md) §12에 단계별로 정리돼 있다.**
-단계 3에 카카오톡 공유 미리보기·계좌번호 등 아직 없는 청첩장 필수 요소가 있다.
+```text
+타일 6종        16x16    잔디 · 꽃밭 · 길 · 물 · 나무 · 울타리
+플레이어        12x16    4방향 x 3프레임 = 12장
+주민 2종        12x16    서 있기만 = 2장
+고양이          12x10    옆모습 3프레임
+나비             6x6     2프레임
+액자            14x16
+예식장          34x34
+표지판          14x18
+약도                     public/wedding/directions-map.svg
+사진 4장                 public/memories/*.svg
+```
+
+**4방향은 그림만의 일이 아니다.** 지금은 좌우 뒤집기만 하면 됐지만,
+캐릭터가 어느 쪽을 보는지 기억하고 걷기 애니메이션 네 벌을 갈아끼우는
+코드가 `WorldScene.movePlayer` 근처에 들어가야 한다.
+
+그다음은 단계 4(실제 내용) → 5(참여 기능, 선택) → 6(배포).
+전체는 [BLUEPRINT.md](BLUEPRINT.md) §12.
 
 폰 접속이 안 되면 [notes/mobile-testing.md](notes/mobile-testing.md).
 
@@ -117,12 +147,17 @@ Scene은 **무엇을 보여줄지 모른다.** id만 던진다. 화면은 React�
 ```text
 app/page.tsx                         GameCanvas 렌더링
 components/game/GameCanvas.tsx       React ↔ Phaser 접점 + 창 띄우기
+components/start/StartScreen.tsx     입장 화면
 components/memory/MemoryModal.tsx    사진 창
 components/dialogue/DialogueBox.tsx  대화창
-components/wedding/WeddingInfo.tsx   결혼식 정보 + 약도 + 길찾기
+components/signpost/SignpostPanel.tsx 표지판 안내
+components/wedding/WeddingInfo.tsx   결혼식 정보 + 약도 + 길찾기 + 공유
+components/wedding/AccountList.tsx   마음 전하실 곳
+lib/clipboard.ts                     복사 · 공유 (보안 컨텍스트 대비책 포함)
+app/opengraph-image.tsx              카카오톡 미리보기 이미지 생성
 types/index.ts                       공용 타입 (Phaser/React 양쪽에서 씀)
 data/                                내용. 실제 청첩장은 여기만 바꾸면 됨
-  memories.ts  dialogues.ts  wedding.ts
+  memories.ts  dialogues.ts  wedding.ts  signposts.ts
 game/events.ts                       Phaser ↔ React 이벤트 이름
 game/config/gameConfig.ts            Phaser.Game 설정
 game/tiles.ts                        타일 정의 (색·모양·충돌)
@@ -146,10 +181,14 @@ WorldScene이 450줄을 넘었다. 다음에 손대면 `game/player/`로 분리�
 ## 로드맵 위치
 
 ```text
-0 환경 ✓  1 Phaser ✓  2 Canvas ✓  3 Map ✓  4 Player ✓  5 Movement ✓
-6 Camera ✓  7 Interaction ✓  8 Memory Modal ✓  9 Wedding Info ✓
-10 Mobile UX ←
-이후: Guestbook / Photo Upload / Creator / Backend / Deployment
+PHASE 0~10 전부 완료
+
+단계 1 확정        ✓
+단계 2 그래픽      ← 여기
+단계 3 청첩장 필수  ✓
+단계 4 실제 내용
+단계 5 참여 기능 (선택, 서버 필요)
+단계 6 배포
 ```
 
 전체 로드맵은 [BLUEPRINT.md](BLUEPRINT.md) §12, 미룬 것은 [BACKLOG.md](BACKLOG.md).

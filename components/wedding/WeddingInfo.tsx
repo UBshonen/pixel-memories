@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
+import AccountList from "@/components/wedding/AccountList";
 import { kakaoDirectionsUrl, naverMapUrl, WEDDING } from "@/data/wedding";
+import { shareLink } from "@/lib/clipboard";
 
 /**
  * 예식장을 눌렀을 때 열리는 결혼식 정보 창.
@@ -12,6 +14,20 @@ import { kakaoDirectionsUrl, naverMapUrl, WEDDING } from "@/data/wedding";
  * API 키도 계정도 필요하지 않다. (docs/BACKLOG.md 참고)
  */
 export default function WeddingInfo({ onClose }: { onClose: () => void }) {
+  const [shareLabel, setShareLabel] = useState("청첩장 공유하기");
+
+  const handleShare = async () => {
+    const result = await shareLink(
+      `${WEDDING.groom} ♥ ${WEDDING.bride} 결혼합니다`,
+      "추억 마을에 초대합니다",
+    );
+
+    if (result === "shared") return;
+
+    setShareLabel(result === "copied" ? "링크가 복사됐어요" : "복사에 실패했어요");
+    window.setTimeout(() => setShareLabel("청첩장 공유하기"), 1800);
+  };
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -38,6 +54,16 @@ export default function WeddingInfo({ onClose }: { onClose: () => void }) {
           <p className="text-lg font-bold tracking-widest text-white">
             {WEDDING.groom} <span className="text-[#e8556d]">♥</span> {WEDDING.bride}
           </p>
+
+          <div className="mt-3 space-y-1 text-[11px] leading-relaxed text-[#b8bdd6]">
+            <p>
+              {WEDDING.groomFamily} <span className="text-white">{WEDDING.groom}</span>
+            </p>
+            <p>
+              {WEDDING.brideFamily} <span className="text-white">{WEDDING.bride}</span>
+            </p>
+          </div>
+
           <p className="mt-3 text-sm text-[#f4b41b]">{WEDDING.date}</p>
           <p className="text-sm text-[#f4b41b]">{WEDDING.time}</p>
           <p className="mt-3 text-sm text-white">{WEDDING.venue}</p>
@@ -91,6 +117,16 @@ export default function WeddingInfo({ onClose }: { onClose: () => void }) {
         >
           예식장 {WEDDING.tel}
         </a>
+
+        <AccountList />
+
+        <button
+          type="button"
+          onClick={handleShare}
+          className="w-full border-b-4 border-[#8b6b45] bg-[#1a1c2c] py-3 text-center text-xs text-[#f4b41b] active:bg-[#2f3450]"
+        >
+          {shareLabel}
+        </button>
 
         <button
           type="button"

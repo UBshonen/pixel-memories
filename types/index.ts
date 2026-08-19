@@ -32,10 +32,39 @@ export type Direction = {
   text: string;
 };
 
+/** 마음 전하실 곳 — 계좌 하나 */
+export type Account = {
+  /** "신랑측" 또는 "신부측" */
+  side: string;
+  /** "신랑", "아버지", "어머니" 등 */
+  role: string;
+  name: string;
+  bank: string;
+  /** 화면에 보이는 그대로. 복사도 이 문자열로 한다. */
+  number: string;
+};
+
+/** 표지판이 가리키는 방향 하나 */
+export type SignpostDirection = {
+  /** "↑" "↓" "←" "→" */
+  arrow: string;
+  label: string;
+};
+
+/** 갈림길에 세워두는 표지판 */
+export type Signpost = {
+  id: string;
+  title: string;
+  directions: SignpostDirection[];
+};
+
 /** 결혼식 정보 */
 export type Wedding = {
   groom: string;
   bride: string;
+  /** "정대호 · 이수진의 장남" 처럼 그대로 표시할 문자열 */
+  groomFamily: string;
+  brideFamily: string;
   /** 화면에 그대로 표시할 문자열 */
   date: string;
   time: string;
@@ -47,10 +76,11 @@ export type Wedding = {
   latitude: number;
   longitude: number;
   directions: Direction[];
+  accounts: Account[];
 };
 
 /** 맵에 놓이는 상호작용 오브젝트의 종류 */
-export type WorldObjectKind = "frame" | "villager" | "venue";
+export type WorldObjectKind = "frame" | "villager" | "venue" | "signpost";
 
 /** 맵 위에 배치된 오브젝트 하나 */
 export type WorldObject = {

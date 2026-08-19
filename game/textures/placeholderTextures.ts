@@ -18,6 +18,7 @@ export const PLAYER_KEY = "player";
 export const VILLAGER_KEY = "villager";
 export const FRAME_KEY = "frame";
 export const VENUE_KEY = "venue";
+export const SIGNPOST_KEY = "signpost";
 export const CAT_KEY = "cat";
 export const BUTTERFLY_KEY = "butterfly";
 
@@ -32,6 +33,10 @@ export const FRAME_HEIGHT = 16;
 /** 예식장 스프라이트 크기. 타일 두 칸쯤 되는 건물이다. */
 export const VENUE_WIDTH = 34;
 export const VENUE_HEIGHT = 34;
+
+/** 표지판 */
+export const SIGNPOST_WIDTH = 14;
+export const SIGNPOST_HEIGHT = 18;
 
 /** 길잡이 고양이. 옆모습만 그리고 좌우로 뒤집어 쓴다. */
 export const CAT_WIDTH = 12;
@@ -59,6 +64,7 @@ export function createPlaceholderTextures(scene: Phaser.Scene) {
   createVillagerTexture(scene);
   createFrameTexture(scene);
   createVenueTexture(scene);
+  createSignpostTexture(scene);
   createCatTexture(scene);
   createButterflyTexture(scene);
 }
@@ -257,6 +263,38 @@ function createVenueTexture(scene: Phaser.Scene) {
   rect(25, 20, 1, 6, 0xf2e6d0); // 창틀
 
   g.generateTexture(VENUE_KEY, VENUE_WIDTH, VENUE_HEIGHT);
+  g.destroy();
+}
+
+// ────────────────────────────────────────────────────────────
+// 표지판
+// ────────────────────────────────────────────────────────────
+
+/** 기둥에 방향 팻말 두 개가 엇갈려 달린 모양 */
+function createSignpostTexture(scene: Phaser.Scene) {
+  const g = scene.add.graphics();
+
+  const POST = 0x6b4a2f;
+  const BOARD = 0xb8946a;
+  const BOARD_EDGE = 0x8b6b45;
+  const TEXT = 0x5a4630;
+
+  const rect = (x: number, y: number, w: number, h: number, color: number) => {
+    g.fillStyle(color, 1);
+    g.fillRect(x, y, w, h);
+  };
+
+  rect(6, 4, 2, 14, POST); // 기둥
+
+  rect(1, 5, 10, 4, BOARD_EDGE); // 위쪽 팻말
+  rect(2, 6, 8, 2, BOARD);
+  rect(3, 7, 5, 1, TEXT); // 글씨처럼 보이는 선
+
+  rect(3, 11, 10, 4, BOARD_EDGE); // 아래쪽 팻말 (반대 방향)
+  rect(4, 12, 8, 2, BOARD);
+  rect(6, 13, 5, 1, TEXT);
+
+  g.generateTexture(SIGNPOST_KEY, SIGNPOST_WIDTH, SIGNPOST_HEIGHT);
   g.destroy();
 }
 
