@@ -11,6 +11,8 @@ import {
 } from "../maps/pathfinding";
 import { parseMapArt, SPAWN_TILE } from "../maps/villageMap";
 import { VILLAGE_OBJECTS } from "../maps/villageObjects";
+import { Butterflies } from "../objects/Butterflies";
+import { GuideCat } from "../objects/GuideCat";
 import {
   FRAME_KEY,
   PERSON_HEIGHT,
@@ -20,7 +22,7 @@ import {
   VENUE_KEY,
   VILLAGER_KEY,
 } from "../textures/placeholderTextures";
-import { SOLID_TILES, TILE_SIZE } from "../tiles";
+import { SOLID_TILES, TILE, TILE_SIZE } from "../tiles";
 
 /**
  * 카메라 확대 배율.
@@ -46,6 +48,9 @@ const WAYPOINT_REACHED = 3;
 
 /** 이 시간 동안 앞으로 나아가지 못하면 자동 이동을 포기한다. (밀리초) */
 const STUCK_TIMEOUT = 1500;
+
+/** 마을에 풀어놓을 나비 수 */
+const BUTTERFLY_COUNT = 7;
 
 /** 오브젝트와 그 오브젝트를 나타내는 스프라이트를 함께 들고 다닌다. */
 type Interactable = {
@@ -84,6 +89,12 @@ export class WorldScene extends Phaser.Scene {
   private walkable: boolean[][] = [];
   private autoWalk: AutoWalk | null = null;
 
+  private guideCat!: GuideCat;
+  private butterflies!: Butterflies;
+
+  /** 이미 열어본 오브젝트의 id. 고양이는 아직 안 본 곳으로 안내한다. */
+  private visited = new Set<string>();
+
 
   constructor() {
     super("WorldScene");
@@ -101,6 +112,68 @@ export class WorldScene extends Phaser.Scene {
     this.createPrompt();
     this.createControls();
     this.createCamera(map);
+    this.createCompanions(tiles);
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // 고양이와 나비
+  // ────────────────────────────────────────────────────────────
+
+  private createCompanions(tiles: number[][]) {
+    this.guideCat = new GuideCat(this, this.player.x - TILE_SIZE, this.player.y + 8);
+
+    // 나비는 꽃밭 위를 오간다.
+    const flowerSpots: Phaser.Math.Vector2[] = [];
+
+    tiles.forEach((row, y) => {
+      row.forEach((tile, x) => {
+        if (tile !== TILE.FLOWER) return;
+
+        const center = tileToPixelCenter(x, y);
+        flowerSpots.push(new Phaser.Math.Vector2(center.x, center.y));
+      });
+    });
+
+    this.butterflies = new Butterflies(this, flowerSpots, BUTTERFLY_COUNT);
+  }
+
+  private updateCompanions(time: number, delta: number) {
+    const body = this.player.body;
+    const isMoving = body ? body.velocity.x !== 0 || body.velocity.y !== 0 : false;
+
+    this.guideCat.update(
+      time,
+      delta,
+      this.player,
+      isMoving,
+      this.nextUnvisitedTile(),
+      this.walkable,
+    );
+
+    this.butterflies.update(time, delta);
+  }
+
+  /**
+   * 아직 열어보지 않은 것 중 가장 가까운 곳의 타일 좌표.
+   *
+   * 전부 봤으면 null. 그러면 고양이는 안내하지 않고 따라만 다닌다.
+   */
+  private nextUnvisitedTile(): TilePoint | null {
+    let closest: WorldObject | null = null;
+    let closestDistance = Infinity;
+
+    for (const { data, sprite } of this.interactables) {
+      if (this.visited.has(data.id)) continue;
+
+      const distance = this.distanceTo(sprite);
+
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closest = data;
+      }
+    }
+
+    return closest ? { x: closest.tileX, y: closest.tileY } : null;
   }
 
   /**
@@ -159,10 +232,11 @@ export class WorldScene extends Phaser.Scene {
     };
   }
 
-  update(time: number) {
+  update(time: number, delta: number) {
     this.updateNearest(time);
     this.handleInteractKey();
     this.movePlayer(time);
+    this.updateCompanions(time, delta);
   }
 
   // ────────────────────────────────────────────────────────────
@@ -373,6 +447,9 @@ export class WorldScene extends Phaser.Scene {
     // 창이 열려 있는 동안 캐릭터가 계속 걷지 않도록 멈춘다.
     this.player.setVelocity(0, 0);
     this.player.play("player-idle");
+
+    // 고양이가 같은 곳으로 계속 안내하지 않도록 본 것으로 표시한다.
+    this.visited.add(object.id);
 
     if (object.kind === "venue") {
       this.game.events.emit(GAME_EVENT.OPEN_WEDDING);

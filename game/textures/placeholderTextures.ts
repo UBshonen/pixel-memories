@@ -18,6 +18,8 @@ export const PLAYER_KEY = "player";
 export const VILLAGER_KEY = "villager";
 export const FRAME_KEY = "frame";
 export const VENUE_KEY = "venue";
+export const CAT_KEY = "cat";
+export const BUTTERFLY_KEY = "butterfly";
 
 /** 사람 스프라이트 한 프레임의 크기 */
 export const PERSON_WIDTH = 12;
@@ -31,8 +33,22 @@ export const FRAME_HEIGHT = 16;
 export const VENUE_WIDTH = 34;
 export const VENUE_HEIGHT = 34;
 
+/** 길잡이 고양이. 옆모습만 그리고 좌우로 뒤집어 쓴다. */
+export const CAT_WIDTH = 12;
+export const CAT_HEIGHT = 10;
+
+/** 나비. 배경을 채우는 장식이다. */
+export const BUTTERFLY_WIDTH = 6;
+export const BUTTERFLY_HEIGHT = 6;
+
 /** 0: 서 있기, 1: 왼발, 2: 오른발 */
 const WALK_FRAME_COUNT = 3;
+
+/** 고양이도 같은 3프레임 구성 */
+export const CAT_FRAME_COUNT = 3;
+
+/** 나비는 날개 편 것과 접은 것 두 장 */
+export const BUTTERFLY_FRAME_COUNT = 2;
 
 /** 주민 외형 가짓수. WorldObject.variant가 이 범위 안이어야 한다. */
 export const VILLAGER_VARIANTS = 2;
@@ -43,6 +59,8 @@ export function createPlaceholderTextures(scene: Phaser.Scene) {
   createVillagerTexture(scene);
   createFrameTexture(scene);
   createVenueTexture(scene);
+  createCatTexture(scene);
+  createButterflyTexture(scene);
 }
 
 // ────────────────────────────────────────────────────────────
@@ -240,4 +258,122 @@ function createVenueTexture(scene: Phaser.Scene) {
 
   g.generateTexture(VENUE_KEY, VENUE_WIDTH, VENUE_HEIGHT);
   g.destroy();
+}
+
+// ────────────────────────────────────────────────────────────
+// 길잡이 고양이
+// ────────────────────────────────────────────────────────────
+
+/** 오른쪽을 보고 있는 옆모습. 왼쪽으로 갈 때는 뒤집어 쓴다. */
+function createCatTexture(scene: Phaser.Scene) {
+  const g = scene.add.graphics();
+
+  const FUR = 0xd9884f;
+  const STRIPE = 0xb96f3d;
+  const BELLY = 0xf2d7b8;
+  const EYE = 0x2b2b3d;
+
+  /** 프레임별 앞다리 · 뒷다리. [x, y, 너비, 높이] */
+  const legsByFrame: [number, number, number, number][][] = [
+    // 0 — 서 있기
+    [
+      [2, 8, 2, 2],
+      [8, 8, 2, 2],
+    ],
+    // 1 — 발 교차 A
+    [
+      [1, 8, 3, 2],
+      [8, 8, 2, 1],
+    ],
+    // 2 — 발 교차 B
+    [
+      [3, 8, 2, 1],
+      [8, 8, 3, 2],
+    ],
+  ];
+
+  for (let frame = 0; frame < CAT_FRAME_COUNT; frame++) {
+    const originX = frame * CAT_WIDTH;
+
+    const rect = (x: number, y: number, w: number, h: number, color: number) => {
+      g.fillStyle(color, 1);
+      g.fillRect(originX + x, y, w, h);
+    };
+
+    rect(0, 2, 2, 1, FUR); // 꼬리 끝
+    rect(0, 3, 1, 3, FUR); // 꼬리
+    rect(1, 5, 10, 3, FUR); // 몸통
+    rect(1, 7, 10, 1, BELLY); // 배
+    rect(3, 5, 1, 2, STRIPE); // 줄무늬
+    rect(5, 5, 1, 2, STRIPE);
+    rect(7, 2, 5, 3, FUR); // 머리
+    rect(7, 1, 1, 1, FUR); // 왼쪽 귀
+    rect(10, 1, 1, 1, FUR); // 오른쪽 귀
+    rect(9, 4, 3, 1, BELLY); // 주둥이
+    rect(10, 3, 1, 1, EYE); // 눈
+
+    legsByFrame[frame].forEach(([x, y, w, h]) => rect(x, y, w, h, FUR));
+  }
+
+  g.generateTexture(CAT_KEY, CAT_FRAME_COUNT * CAT_WIDTH, CAT_HEIGHT);
+  g.destroy();
+
+  sliceIntoFrames(scene, CAT_KEY, CAT_FRAME_COUNT, CAT_WIDTH, CAT_HEIGHT);
+}
+
+// ────────────────────────────────────────────────────────────
+// 나비
+// ────────────────────────────────────────────────────────────
+
+/** 날개를 폈다 접는 두 프레임 */
+function createButterflyTexture(scene: Phaser.Scene) {
+  const g = scene.add.graphics();
+
+  const WING = 0xf7e08a;
+  const WING_EDGE = 0xe8a33d;
+  const BODY = 0x6b4a2f;
+
+  const wingsByFrame: [number, number, number, number, number][][] = [
+    // 0 — 펼침
+    [
+      [0, 1, 2, 3, WING],
+      [4, 1, 2, 3, WING],
+      [0, 3, 2, 1, WING_EDGE],
+      [4, 3, 2, 1, WING_EDGE],
+    ],
+    // 1 — 접음
+    [
+      [1, 0, 1, 4, WING],
+      [4, 0, 1, 4, WING],
+      [1, 3, 1, 1, WING_EDGE],
+      [4, 3, 1, 1, WING_EDGE],
+    ],
+  ];
+
+  for (let frame = 0; frame < BUTTERFLY_FRAME_COUNT; frame++) {
+    const originX = frame * BUTTERFLY_WIDTH;
+
+    wingsByFrame[frame].forEach(([x, y, w, h, color]) => {
+      g.fillStyle(color, 1);
+      g.fillRect(originX + x, y, w, h);
+    });
+
+    g.fillStyle(BODY, 1);
+    g.fillRect(originX + 2, 1, 2, 4);
+  }
+
+  g.generateTexture(
+    BUTTERFLY_KEY,
+    BUTTERFLY_FRAME_COUNT * BUTTERFLY_WIDTH,
+    BUTTERFLY_HEIGHT,
+  );
+  g.destroy();
+
+  sliceIntoFrames(
+    scene,
+    BUTTERFLY_KEY,
+    BUTTERFLY_FRAME_COUNT,
+    BUTTERFLY_WIDTH,
+    BUTTERFLY_HEIGHT,
+  );
 }

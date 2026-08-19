@@ -25,6 +25,8 @@ npm run dev  →  localhost:3000
 캐릭터 걷기 · 충돌 · 카메라 추적
 액자 4 + 주민 2 + 예식장 1
 
+길잡이 고양이 1마리 + 나비 7마리
+
 조작 — 화면에 버튼이 하나도 없다
   아무 곳이나 탭        길을 찾아 그 자리로 걸어감
   오브젝트 탭           그 앞까지 걸어간 뒤 자동으로 열림
@@ -55,6 +57,23 @@ WorldScene.interactWith()
 
 Scene은 **무엇을 보여줄지 모른다.** id만 던진다. 화면은 React가 정한다.
 이벤트 이름은 `game/events.ts`에 상수로 있다 (오타 나면 조용히 실패하므로).
+
+## 길 안내는 UI가 아니라 고양이가 한다
+
+3배 확대라 화면에 맵의 5%만 보인다. 그래서 길을 잃기 쉬운데,
+화살표나 미니맵 대신 **마을에 사는 생명체**로 풀었다.
+
+```text
+평소        플레이어가 지나온 자취를 밟아 따라온다 (길찾기 안 씀)
+2.2초 멈추면  아직 안 본 곳으로 3칸 앞서가서 돌아본다 (길찾기 씀)
+다시 움직이면 안내를 접고 따라오기로 돌아간다
+전부 봤으면   안내하지 않고 따라만 다닌다
+```
+
+**안내 장치는 이것 하나뿐이다.** 표지판·화살표·미니맵을 함께 두면
+하객이 뭘 봐야 할지 몰라 오히려 헷갈린다. 늘리지 말 것.
+
+`game/objects/GuideCat.ts` 상단 상수로 거리·속도·기다리는 시간을 조절한다.
 
 ## 길찾기
 
@@ -110,6 +129,8 @@ game/tiles.ts                        타일 정의 (색·모양·충돌)
 game/maps/villageMap.ts              맵. 글자 그림이라 눈으로 보고 고칠 수 있다
 game/maps/villageObjects.ts          오브젝트 배치
 game/maps/pathfinding.ts             A* 길찾기
+game/objects/GuideCat.ts             길잡이 고양이
+game/objects/Butterflies.ts          나비 (장식 전용)
 game/textures/placeholderTextures.ts 임시 그래픽 생성
 game/scenes/BootScene.ts             텍스처 준비 후 WorldScene 시작
 game/scenes/WorldScene.ts            맵 + 플레이어 + 오브젝트 + 조작 + 카메라
