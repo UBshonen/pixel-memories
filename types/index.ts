@@ -25,8 +25,32 @@ export type Dialogue = {
   lines: string[];
 };
 
+/** 오시는 길 안내 한 줄 */
+export type Direction = {
+  /** "지하철", "버스", "주차" 등 */
+  label: string;
+  text: string;
+};
+
+/** 결혼식 정보 */
+export type Wedding = {
+  groom: string;
+  bride: string;
+  /** 화면에 그대로 표시할 문자열 */
+  date: string;
+  time: string;
+  venue: string;
+  hall: string;
+  address: string;
+  tel: string;
+  /** 길찾기 링크에 쓰인다. 나중에 지도 API를 붙일 때도 그대로 쓴다. */
+  latitude: number;
+  longitude: number;
+  directions: Direction[];
+};
+
 /** 맵에 놓이는 상호작용 오브젝트의 종류 */
-export type WorldObjectKind = "frame" | "villager";
+export type WorldObjectKind = "frame" | "villager" | "venue";
 
 /** 맵 위에 배치된 오브젝트 하나 */
 export type WorldObject = {

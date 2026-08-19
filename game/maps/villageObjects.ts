@@ -11,6 +11,15 @@ import type { WorldObject } from "@/types";
  */
 export const VILLAGE_OBJECTS: WorldObject[] = [
   {
+    // 큰길을 따라 위로 끝까지 올라가면 나오는 예식장.
+    // 건물이 길 끝을 막고 있어서 자연스럽게 목적지가 된다.
+    id: "obj-venue",
+    kind: "venue",
+    tileX: 15,
+    tileY: 3,
+    targetId: "wedding",
+  },
+  {
     id: "obj-frame-first-meeting",
     kind: "frame",
     tileX: 14,

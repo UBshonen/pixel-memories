@@ -17,6 +17,7 @@ export const TILESET_KEY = "tileset";
 export const PLAYER_KEY = "player";
 export const VILLAGER_KEY = "villager";
 export const FRAME_KEY = "frame";
+export const VENUE_KEY = "venue";
 
 /** 사람 스프라이트 한 프레임의 크기 */
 export const PERSON_WIDTH = 12;
@@ -25,6 +26,10 @@ export const PERSON_HEIGHT = 16;
 /** 액자 스프라이트 크기 */
 export const FRAME_WIDTH = 14;
 export const FRAME_HEIGHT = 16;
+
+/** 예식장 스프라이트 크기. 타일 두 칸쯤 되는 건물이다. */
+export const VENUE_WIDTH = 34;
+export const VENUE_HEIGHT = 34;
 
 /** 0: 서 있기, 1: 왼발, 2: 오른발 */
 const WALK_FRAME_COUNT = 3;
@@ -37,6 +42,7 @@ export function createPlaceholderTextures(scene: Phaser.Scene) {
   createPlayerTexture(scene);
   createVillagerTexture(scene);
   createFrameTexture(scene);
+  createVenueTexture(scene);
 }
 
 // ────────────────────────────────────────────────────────────
@@ -201,5 +207,37 @@ function createFrameTexture(scene: Phaser.Scene) {
   rect(5, 5, 2, 2, 0xe8a33d); // 사진 속 해
 
   g.generateTexture(FRAME_KEY, FRAME_WIDTH, FRAME_HEIGHT);
+  g.destroy();
+}
+
+// ────────────────────────────────────────────────────────────
+// 예식장
+// ────────────────────────────────────────────────────────────
+
+/** 지붕과 문이 있는 작은 예식장 건물 */
+function createVenueTexture(scene: Phaser.Scene) {
+  const g = scene.add.graphics();
+
+  const rect = (x: number, y: number, w: number, h: number, color: number) => {
+    g.fillStyle(color, 1);
+    g.fillRect(x, y, w, h);
+  };
+
+  rect(4, 14, 26, 20, 0xf2e6d0); // 건물 벽
+  rect(4, 14, 26, 2, 0xe0d0b4); // 벽 위 그림자
+  rect(2, 8, 30, 6, 0xb5544a); // 지붕 아래
+  rect(6, 4, 22, 4, 0xc9635a); // 지붕 위
+  rect(10, 0, 14, 4, 0xc9635a); // 지붕 꼭대기
+  rect(16, 1, 2, 8, 0xf4b41b); // 첨탑 기둥
+  rect(13, 3, 8, 2, 0xf4b41b); // 첨탑 가로
+  rect(13, 20, 8, 14, 0x8b6b45); // 문
+  rect(15, 22, 4, 6, 0x7fa9c9); // 문 위 창
+  rect(19, 27, 2, 2, 0xf4b41b); // 손잡이
+  rect(6, 20, 5, 6, 0x7fa9c9); // 왼쪽 창
+  rect(23, 20, 5, 6, 0x7fa9c9); // 오른쪽 창
+  rect(8, 20, 1, 6, 0xf2e6d0); // 창틀
+  rect(25, 20, 1, 6, 0xf2e6d0); // 창틀
+
+  g.generateTexture(VENUE_KEY, VENUE_WIDTH, VENUE_HEIGHT);
   g.destroy();
 }

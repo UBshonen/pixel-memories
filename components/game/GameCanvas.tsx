@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import DialogueBox from "@/components/dialogue/DialogueBox";
 import MemoryModal from "@/components/memory/MemoryModal";
+import WeddingInfo from "@/components/wedding/WeddingInfo";
 import { findDialogue } from "@/data/dialogues";
 import { findMemory } from "@/data/memories";
 import { GAME_EVENT } from "@/game/events";
@@ -23,6 +24,7 @@ export default function GameCanvas() {
 
   const [memory, setMemory] = useState<Memory | null>(null);
   const [dialogue, setDialogue] = useState<Dialogue | null>(null);
+  const [weddingOpen, setWeddingOpen] = useState(false);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -53,6 +55,10 @@ export default function GameCanvas() {
         const found = findDialogue(id);
         if (found) openOverlay(() => setDialogue(found));
       });
+
+      game.events.on(GAME_EVENT.OPEN_WEDDING, () => {
+        openOverlay(() => setWeddingOpen(true));
+      });
     })();
 
     /** 창을 띄우는 동안에는 게임을 멈춰 둔다. */
@@ -71,6 +77,7 @@ export default function GameCanvas() {
   const closeOverlay = useCallback(() => {
     setMemory(null);
     setDialogue(null);
+    setWeddingOpen(false);
     gameRef.current?.scene.resume("WorldScene");
   }, []);
 
@@ -80,6 +87,7 @@ export default function GameCanvas() {
 
       {memory && <MemoryModal memory={memory} onClose={closeOverlay} />}
       {dialogue && <DialogueBox dialogue={dialogue} onClose={closeOverlay} />}
+      {weddingOpen && <WeddingInfo onClose={closeOverlay} />}
     </div>
   );
 }

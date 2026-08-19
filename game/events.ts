@@ -17,4 +17,6 @@ export const GAME_EVENT = {
   OPEN_MEMORY: "pm:open-memory",
   /** NPC와 상호작용했다. payload: dialogue id */
   OPEN_DIALOGUE: "pm:open-dialogue",
+  /** 예식장과 상호작용했다. payload 없음 */
+  OPEN_WEDDING: "pm:open-wedding",
 } as const;
