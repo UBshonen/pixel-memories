@@ -16,6 +16,14 @@ const GUIDE_SPEED = 60;
 /** 플레이어가 이만큼 멈춰 있으면 안내를 시작한다 (밀리초) */
 const IDLE_BEFORE_GUIDE = 2200;
 
+/**
+ * 맨 처음 한 번만은 더 빨리 앞장선다.
+ *
+ * 입장하자마자 고양이가 걸어가는 것을 보여줘야
+ * "따라가면 되는구나"를 설명 없이 알 수 있다.
+ */
+const IDLE_BEFORE_FIRST_GUIDE = 700;
+
 /** 한 번 안내할 때 앞서가는 칸 수 */
 const GUIDE_STEPS = 3;
 
@@ -59,6 +67,7 @@ export class GuideCat {
 
   private idleSince: number | null = null;
   private guideReadyAt = 0;
+  private hasGuidedOnce = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     this.sprite = scene.add.sprite(x, y, CAT_KEY, 0);
@@ -107,14 +116,22 @@ export class GuideCat {
       this.idleSince = time;
     }
 
+    const waitNeeded = this.hasGuidedOnce
+      ? IDLE_BEFORE_GUIDE
+      : IDLE_BEFORE_FIRST_GUIDE;
+
     const shouldGuide =
       this.idleSince !== null &&
-      time - this.idleSince > IDLE_BEFORE_GUIDE &&
+      time - this.idleSince > waitNeeded &&
       time > this.guideReadyAt &&
       guideTarget !== null;
 
     if (this.guideWaypoints.length === 0 && shouldGuide) {
       this.planGuide(player, guideTarget, walkable);
+
+      if (this.guideWaypoints.length > 0) {
+        this.hasGuidedOnce = true;
+      }
     }
 
     if (this.guideWaypoints.length > 0) {

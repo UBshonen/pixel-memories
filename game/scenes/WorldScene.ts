@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 
+import { findDialogue } from "@/data/dialogues";
 import type { WorldObject } from "@/types";
 
 import { GAME_EVENT } from "../events";
@@ -14,6 +15,7 @@ import { VILLAGE_OBJECTS } from "../maps/villageObjects";
 import { Butterflies } from "../objects/Butterflies";
 import { GuideCat } from "../objects/GuideCat";
 import {
+  FINGER_KEY,
   FRAME_KEY,
   PERSON_HEIGHT,
   PERSON_WIDTH,
@@ -53,10 +55,37 @@ const STUCK_TIMEOUT = 1500;
 /** 마을에 풀어놓을 나비 수 */
 const BUTTERFLY_COUNT = 7;
 
+/**
+ * 상호작용할 수 있는 것들은 가만히 있지 않는다.
+ *
+ * "움직이는 것은 만질 수 있다"는 설명이 필요 없는 신호다.
+ * 가만히 서 있는 나무·울타리와 저절로 구분되므로,
+ * 어르신도 무엇을 눌러야 할지 배우지 않고 알 수 있다.
+ */
+const IDLE_BOB_PIXELS = 1;
+const IDLE_BOB_PERIOD = 1400;
+
+/** 주민이 폴짝 뛰는 주기와 높이 */
+const HOP_PERIOD = 2600;
+const HOP_PIXELS = 2;
+
+/** 인사말이 저절로 뜨는 거리. 상호작용 거리보다 조금 넓게 잡아 먼저 반응한다. */
+const GREETING_RANGE = 40;
+
+/** 처음 입장했을 때 손가락 안내가 나오기까지 (밀리초) */
+const HINT_DELAY = 900;
+
+/** 손가락 안내로 걸어갈 거리 (타일) */
+const HINT_TILES_AHEAD = 3;
+
 /** 오브젝트와 그 오브젝트를 나타내는 스프라이트를 함께 들고 다닌다. */
 type Interactable = {
   data: WorldObject;
   sprite: Phaser.Physics.Arcade.Sprite;
+  /** 살아 움직이게 하기 위한 기준 y값. 여기서 위아래로 흔든다. */
+  baseY: number;
+  /** 오브젝트마다 흔들리는 박자를 어긋나게 한다 */
+  phase: number;
 };
 
 /** 어딘가로 자동으로 걸어가는 중인 상태 */
@@ -85,6 +114,15 @@ export class WorldScene extends Phaser.Scene {
   private interactables: Interactable[] = [];
   private nearest: Interactable | null = null;
   private prompt!: Phaser.GameObjects.Text;
+
+  /** 주민 곁에 다가가면 저절로 뜨는 인사말 */
+  private greeting!: Phaser.GameObjects.Text;
+
+  /** 예식장 창문에 깜빡이는 불빛 */
+  private venueLight: Phaser.GameObjects.Rectangle | null = null;
+
+  /** 조작 안내를 이미 보여줬는지. 처음 한 번만 나온다. */
+  private hintShown = false;
 
   /** 걸을 수 있는 칸 표. 길찾기에 쓴다. */
   private walkable: boolean[][] = [];
@@ -234,6 +272,11 @@ export class WorldScene extends Phaser.Scene {
   }
 
   update(time: number, delta: number) {
+    if (!this.hintShown && time > HINT_DELAY) {
+      this.showTapHint();
+    }
+
+    this.updateIdleMotion(time);
     this.updateNearest(time);
     this.handleInteractKey();
     this.movePlayer(time);
@@ -327,7 +370,7 @@ export class WorldScene extends Phaser.Scene {
   private createInteractables() {
     const group = this.physics.add.staticGroup();
 
-    this.interactables = VILLAGE_OBJECTS.map((data) => {
+    this.interactables = VILLAGE_OBJECTS.map((data, index) => {
       const { x, y } = tileToPixelCenter(data.tileX, data.tileY);
 
       const sprite = group.create(
@@ -345,10 +388,14 @@ export class WorldScene extends Phaser.Scene {
       // 오브젝트를 누르면 그쪽으로 걸어간다. (가까우면 바로 상호작용)
       sprite.setInteractive({ useHandCursor: true });
       sprite.on("pointerdown", () => {
-        this.approach({ data, sprite });
+        this.approach({ data, sprite, baseY: y, phase: index });
       });
 
-      return { data, sprite };
+      if (data.kind === "venue") {
+        this.createVenueLight(sprite);
+      }
+
+      return { data, sprite, baseY: y, phase: index };
     });
 
     this.physics.add.collider(this.player, group);
@@ -365,6 +412,42 @@ export class WorldScene extends Phaser.Scene {
     );
   }
 
+  /**
+   * 예식장 창문에 깜빡이는 불빛.
+   *
+   * 건물은 흔들면 어색해서, 대신 불이 들어왔다 나갔다 한다.
+   */
+  private createVenueLight(venue: Phaser.GameObjects.Sprite) {
+    this.venueLight = this.add
+      .rectangle(venue.x, venue.y - 3, 4, 6, 0xf7e08a, 0.9)
+      .setDepth(venue.y + 1);
+  }
+
+  /**
+   * 상호작용할 수 있는 것들을 살짝 움직인다.
+   *
+   * 액자는 천천히 까딱거리고, 주민은 가끔 폴짝 뛴다.
+   * 표지판처럼 "읽고 해석해야 하는" 안내 없이도
+   * 무엇을 만질 수 있는지 알 수 있게 하는 장치다.
+   */
+  private updateIdleMotion(time: number) {
+    for (const item of this.interactables) {
+      if (item.data.kind === "venue") continue;
+
+      const offset =
+        item.data.kind === "villager"
+          ? hopOffset(time, item.phase)
+          : Math.sin(time / IDLE_BOB_PERIOD + item.phase) * IDLE_BOB_PIXELS;
+
+      item.sprite.y = item.baseY + offset;
+    }
+
+    if (this.venueLight) {
+      // 1.8초 주기로 켜졌다 꺼진다.
+      this.venueLight.setAlpha(time % 1800 < 1100 ? 0.9 : 0.15);
+    }
+  }
+
   /** 가장 가까운 오브젝트 위에 떠 있는 안내 표시 */
   private createPrompt() {
     this.prompt = this.add
@@ -379,6 +462,62 @@ export class WorldScene extends Phaser.Scene {
 
     // 위아래로 흔드는 것은 tween이 아니라 update()에서 직접 계산한다.
     // tween은 y값을 자기가 붙잡고 있어서, 매 프레임 위치를 옮기는 것과 충돌한다.
+
+    // 주민 곁에서는 ▼ 대신 인사말이 저절로 뜬다.
+    // 누르지 않았는데 반응이 온다는 경험이 "여기 뭔가 있다"를 알려준다.
+    this.greeting = this.add
+      .text(0, 0, "", {
+        fontFamily: "monospace",
+        fontSize: "9px",
+        color: "#3d2f1e",
+        backgroundColor: "#f2e6d0",
+        padding: { x: 4, y: 3 },
+      })
+      .setOrigin(0.5, 1)
+      .setDepth(10_000)
+      .setVisible(false);
+  }
+
+  /**
+   * 처음 입장했을 때 딱 한 번, 조작법을 글 대신 보여준다.
+   *
+   * 손가락이 앞쪽 길 위에 나타나 한 번 톡 누르고 사라지면
+   * 캐릭터가 그리로 걸어간다. "화면을 눌러 이동하세요"를 읽는 것보다 빠르다.
+   */
+  private showTapHint() {
+    if (this.hintShown) return;
+    this.hintShown = true;
+
+    const start = pixelToTile(this.player.x, this.player.y);
+    const goal =
+      nearestWalkable(this.walkable, { x: start.x, y: start.y - HINT_TILES_AHEAD }, 3) ??
+      nearestWalkable(this.walkable, { x: start.x, y: start.y + HINT_TILES_AHEAD }, 3);
+
+    if (!goal) return;
+
+    const spot = tileToPixelCenter(goal.x, goal.y);
+
+    const finger = this.add
+      .sprite(spot.x + 5, spot.y + 8, FINGER_KEY)
+      .setDepth(10_001)
+      .setAlpha(0);
+
+    this.tweens.chain({
+      targets: finger,
+      tweens: [
+        { alpha: 1, duration: 220 },
+        { y: finger.y + 3, duration: 130, yoyo: true },
+        { alpha: 0, duration: 260, delay: 200 },
+      ],
+      onComplete: () => {
+        finger.destroy();
+
+        // 사용자가 그 사이에 직접 움직였다면 끼어들지 않는다.
+        if (this.autoWalk) return;
+
+        this.walkTo(goal, null);
+      },
+    });
   }
 
   private distanceTo(sprite: Phaser.GameObjects.Sprite) {
@@ -401,7 +540,10 @@ export class WorldScene extends Phaser.Scene {
 
     this.nearest = closest;
 
-    if (!closest) {
+    this.updateGreeting();
+
+    // 인사말이 떠 있으면 ▼는 감춘다. 둘이 겹치면 어지럽다.
+    if (!closest || this.greeting.visible) {
       this.prompt.setVisible(false);
       return;
     }
@@ -412,6 +554,38 @@ export class WorldScene extends Phaser.Scene {
 
     this.prompt.setPosition(closest.sprite.x, baseY + bob);
     this.prompt.setVisible(true);
+  }
+
+  /**
+   * 가까이 있는 주민의 인사말을 띄운다.
+   *
+   * ▼보다 넓은 거리에서 먼저 반응한다. 누르지 않아도 말을 걸어오므로
+   * "여기서 무언가 할 수 있다"를 알아내지 않아도 알게 된다.
+   */
+  private updateGreeting() {
+    const villager = this.interactables.find(
+      (item) =>
+        item.data.kind === "villager" && this.distanceTo(item.sprite) <= GREETING_RANGE,
+    );
+
+    if (!villager) {
+      this.greeting.setVisible(false);
+      return;
+    }
+
+    const dialogue = findDialogue(villager.data.targetId);
+
+    if (!dialogue) {
+      this.greeting.setVisible(false);
+      return;
+    }
+
+    this.greeting.setText(dialogue.greeting);
+    this.greeting.setPosition(
+      villager.sprite.x,
+      villager.sprite.y - villager.sprite.displayHeight / 2 - 2,
+    );
+    this.greeting.setVisible(true);
   }
 
   private handleInteractKey() {
@@ -656,4 +830,18 @@ function pixelToTile(x: number, y: number): TilePoint {
     x: Math.floor(x / TILE_SIZE),
     y: Math.floor(y / TILE_SIZE),
   };
+}
+
+/**
+ * 주민이 가끔 폴짝 뛰는 높이.
+ *
+ * 대부분의 시간은 0이고, 주기의 앞부분에서만 짧게 튀어오른다.
+ * 계속 흔들리는 것보다 이쪽이 "살아 있다"는 느낌이 강하다.
+ */
+function hopOffset(time: number, phase: number): number {
+  const progress = ((time + phase * 700) % HOP_PERIOD) / HOP_PERIOD;
+
+  if (progress > 0.12) return 0;
+
+  return -Math.sin((progress / 0.12) * Math.PI) * HOP_PIXELS;
 }

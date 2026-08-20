@@ -1,19 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 
 import { WEDDING } from "@/data/wedding";
 
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 /**
  * 배포 주소. 카카오톡 미리보기 이미지의 절대 경로를 만드는 데 쓰인다.
@@ -52,10 +41,15 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      lang="ko"
+      className="h-full antialiased"
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      {/*
+        h-svh — 모바일 주소창을 뺀 "가장 작은" 화면 높이.
+        h-full(100%)은 주소창에 가려지는 영역까지 포함해서 위아래가 잘리고,
+        h-dvh는 주소창이 숨을 때마다 높이가 바뀌어 게임 화면이 출렁인다.
+      */}
+      <body className="flex h-svh flex-col overflow-hidden bg-[#0f0f1b]">{children}</body>
     </html>
   );
 }

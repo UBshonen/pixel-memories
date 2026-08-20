@@ -21,6 +21,7 @@ export const VENUE_KEY = "venue";
 export const SIGNPOST_KEY = "signpost";
 export const CAT_KEY = "cat";
 export const BUTTERFLY_KEY = "butterfly";
+export const FINGER_KEY = "finger";
 
 /** 사람 스프라이트 한 프레임의 크기 */
 export const PERSON_WIDTH = 12;
@@ -46,6 +47,10 @@ export const CAT_HEIGHT = 10;
 export const BUTTERFLY_WIDTH = 6;
 export const BUTTERFLY_HEIGHT = 6;
 
+/** 처음 한 번만 나오는 조작 안내용 손가락 */
+export const FINGER_WIDTH = 10;
+export const FINGER_HEIGHT = 12;
+
 /** 0: 서 있기, 1: 왼발, 2: 오른발 */
 const WALK_FRAME_COUNT = 3;
 
@@ -67,6 +72,7 @@ export function createPlaceholderTextures(scene: Phaser.Scene) {
   createSignpostTexture(scene);
   createCatTexture(scene);
   createButterflyTexture(scene);
+  createFingerTexture(scene);
 }
 
 // ────────────────────────────────────────────────────────────
@@ -414,4 +420,34 @@ function createButterflyTexture(scene: Phaser.Scene) {
     BUTTERFLY_WIDTH,
     BUTTERFLY_HEIGHT,
   );
+}
+
+// ────────────────────────────────────────────────────────────
+// 조작 안내 손가락
+// ────────────────────────────────────────────────────────────
+
+/**
+ * 처음 입장했을 때 딱 한 번 보여주는 손가락.
+ *
+ * "화면을 눌러 이동하세요"라는 문장 대신 한 번 눌러 보인다.
+ * 글을 읽지 않아도 되므로 어르신에게 부담이 적다.
+ */
+function createFingerTexture(scene: Phaser.Scene) {
+  const g = scene.add.graphics();
+
+  const SKIN = 0xf0c8a0;
+  const LINE = 0x8b6b45;
+
+  const rect = (x: number, y: number, w: number, h: number, color: number) => {
+    g.fillStyle(color, 1);
+    g.fillRect(x, y, w, h);
+  };
+
+  rect(4, 0, 2, 5, LINE); // 검지 윤곽
+  rect(4, 1, 2, 4, SKIN); // 검지
+  rect(2, 4, 6, 8, LINE); // 주먹 윤곽
+  rect(3, 5, 4, 6, SKIN); // 주먹
+
+  g.generateTexture(FINGER_KEY, FINGER_WIDTH, FINGER_HEIGHT);
+  g.destroy();
 }

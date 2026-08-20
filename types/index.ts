@@ -21,6 +21,12 @@ export type Dialogue = {
   id: string;
   /** 말하는 사람 이름 */
   speaker: string;
+  /**
+   * 가까이 가면 누르지 않아도 저절로 뜨는 짧은 한마디.
+   *
+   * 어르신에게 "여기 뭔가 있다"를 설명 없이 알리는 장치라 한 줄을 넘기지 않는다.
+   */
+  greeting: string;
   /** 한 줄씩 순서대로 보여준다 */
   lines: string[];
 };

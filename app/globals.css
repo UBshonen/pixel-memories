@@ -1,26 +1,16 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+  이 서비스는 어두운 픽셀 화면 하나로만 이뤄져 있다.
+  create-next-app이 넣어준 라이트/다크 변수는 쓰지 않는다.
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+  주의 — 여기 적는 body 규칙은 Tailwind 유틸리티보다 우선한다.
+  배경색을 여기서 정해두지 않으면 layout.tsx의 bg-* 가 먹지 않는다.
+*/
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #0f0f1b;
+  color: #ffffff;
+  /* 화면을 눌러 이동하므로 브라우저의 당겨서 새로고침·확대를 막는다. */
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
 }

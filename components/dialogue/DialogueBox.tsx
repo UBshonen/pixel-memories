@@ -44,7 +44,7 @@ export default function DialogueBox({
 
   return (
     <div
-      className="absolute inset-0 z-10 flex items-end justify-center p-3"
+      className="absolute inset-0 z-30 flex items-end justify-center p-3"
       onClick={advance}
       role="presentation"
     >

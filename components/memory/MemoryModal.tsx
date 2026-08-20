@@ -28,12 +28,12 @@ export default function MemoryModal({
 
   return (
     <div
-      className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 p-4"
+      className="absolute inset-0 z-30 flex justify-center overflow-y-auto bg-black/70 p-4"
       onClick={onClose}
       role="presentation"
     >
       <div
-        className="w-full max-w-sm border-4 border-[#8b6b45] bg-[#1a1c2c] shadow-[0_0_0_4px_#0f0f1b]"
+        className="my-auto h-fit w-full max-w-sm border-4 border-[#8b6b45] bg-[#1a1c2c] shadow-[0_0_0_4px_#0f0f1b]"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"

@@ -12,14 +12,22 @@ import { WEDDING } from "@/data/wedding";
  */
 export default function StartScreen({
   onEnter,
+  onShowInfo,
   loading,
 }: {
   onEnter: () => void;
+  /** 마을에 들어가지 않고 결혼식 정보만 보는 길 */
+  onShowInfo: () => void;
   loading: boolean;
 }) {
   return (
-    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#1a1c2c] px-6 font-mono">
-      <div className="flex w-full max-w-xs flex-col items-center border-4 border-[#8b6b45] px-6 py-10 text-center shadow-[0_0_0_4px_#0f0f1b]">
+    // 내용이 화면보다 길어지면 잘리지 않고 스크롤되게 한다.
+    // justify-center 로 가운데 정렬하면 넘칠 때 위쪽이 화면 밖으로 밀려
+    // 손이 닿지 않는다. 대신 my-auto 로 가운데에 둔다.
+    <div className="absolute inset-0 z-20 flex flex-col items-center overflow-y-auto bg-[#1a1c2c] px-6 py-8 font-mono">
+      {/* 카드와 안내문을 한 덩어리로 묶어야 my-auto가 둘을 함께 가운데로 보낸다. */}
+      <div className="my-auto flex w-full max-w-xs shrink-0 flex-col items-center">
+      <div className="flex w-full flex-col items-center border-4 border-[#8b6b45] px-6 py-8 text-center shadow-[0_0_0_4px_#0f0f1b]">
         <p className="text-xs tracking-[0.3em] text-[#7b82a8]">PIXEL MEMORIES</p>
 
         <p className="mt-6 text-xl font-bold tracking-widest text-white">
@@ -44,11 +52,24 @@ export default function StartScreen({
         >
           {loading ? "마을을 준비하는 중…" : "입장하기"}
         </button>
+
+        {/*
+          탐험이 부담스러운 분을 위한 지름길.
+          이 길이 있어야 마을 쪽을 마음 놓고 재미있게 만들 수 있다.
+        */}
+        <button
+          type="button"
+          onClick={onShowInfo}
+          className="mt-3 w-full py-2 text-xs text-[#7b82a8] underline underline-offset-4 active:text-white"
+        >
+          결혼식 정보 바로 보기
+        </button>
       </div>
 
-      <p className="mt-6 text-[10px] leading-relaxed text-[#4a5080]">
-        화면을 눌러 걸어다닐 수 있어요
-      </p>
+        <p className="mt-6 text-[10px] leading-relaxed text-[#4a5080]">
+          화면을 눌러 걸어다닐 수 있어요
+        </p>
+      </div>
     </div>
   );
 }

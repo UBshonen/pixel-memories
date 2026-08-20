@@ -34,6 +34,9 @@ export default function GameCanvas() {
   const [signpost, setSignpost] = useState<Signpost | null>(null);
   const [weddingOpen, setWeddingOpen] = useState(false);
 
+  /** 마을에 들어가지 않고 시작 화면에서 바로 정보만 본 경우 */
+  const [infoFromStart, setInfoFromStart] = useState(false);
+
   useEffect(() => {
     // 입장하기를 누르기 전에는 게임을 만들지 않는다.
     if (!entered) return;
@@ -98,6 +101,9 @@ export default function GameCanvas() {
     setDialogue(null);
     setSignpost(null);
     setWeddingOpen(false);
+    setInfoFromStart(false);
+
+    // 아직 입장 전이면 게임이 없다. 옵셔널 체이닝이 알아서 넘어간다.
     gameRef.current?.scene.resume("WorldScene");
   }, []);
 
@@ -106,13 +112,17 @@ export default function GameCanvas() {
       <div ref={containerRef} className="h-full w-full" />
 
       {(!entered || !ready) && (
-        <StartScreen onEnter={() => setEntered(true)} loading={entered} />
+        <StartScreen
+          onEnter={() => setEntered(true)}
+          onShowInfo={() => setInfoFromStart(true)}
+          loading={entered}
+        />
       )}
 
       {memory && <MemoryModal memory={memory} onClose={closeOverlay} />}
       {dialogue && <DialogueBox dialogue={dialogue} onClose={closeOverlay} />}
       {signpost && <SignpostPanel signpost={signpost} onClose={closeOverlay} />}
-      {weddingOpen && <WeddingInfo onClose={closeOverlay} />}
+      {(weddingOpen || infoFromStart) && <WeddingInfo onClose={closeOverlay} />}
     </div>
   );
 }

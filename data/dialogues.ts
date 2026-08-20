@@ -9,6 +9,7 @@ export const DIALOGUES: Dialogue[] = [
   {
     id: "dialogue-jimin",
     speaker: "친구 지민",
+    greeting: "어, 왔구나!",
     lines: [
       "어, 왔구나!",
       "둘이 처음 만난 자리에 내가 있었잖아.",
@@ -19,6 +20,7 @@ export const DIALOGUES: Dialogue[] = [
   {
     id: "dialogue-mother",
     speaker: "어머니",
+    greeting: "먼 길 오셨네요.",
     lines: [
       "먼 길 와줘서 고마워요.",
       "저 아래 연못가는 둘이 자주 산책하던 곳이에요.",

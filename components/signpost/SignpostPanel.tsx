@@ -31,12 +31,12 @@ export default function SignpostPanel({
 
   return (
     <div
-      className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 p-4"
+      className="absolute inset-0 z-30 flex justify-center overflow-y-auto bg-black/60 p-4"
       onClick={onClose}
       role="presentation"
     >
       <div
-        className="w-full max-w-xs border-4 border-[#8b6b45] bg-[#b8946a] p-1 font-mono shadow-[0_0_0_4px_#0f0f1b]"
+        className="my-auto h-fit w-full max-w-xs border-4 border-[#8b6b45] bg-[#b8946a] p-1 font-mono shadow-[0_0_0_4px_#0f0f1b]"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
