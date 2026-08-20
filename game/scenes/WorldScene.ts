@@ -18,7 +18,10 @@ import {
   FINGER_KEY,
   FRAME_KEY,
   PERSON_HEIGHT,
+  PERSON_POSES,
   PERSON_WIDTH,
+  personFrame,
+  type PersonPose,
   PLAYER_KEY,
   SIGNPOST_KEY,
   TILESET_KEY,
@@ -123,6 +126,9 @@ export class WorldScene extends Phaser.Scene {
 
   /** 조작 안내를 이미 보여줬는지. 처음 한 번만 나온다. */
   private hintShown = false;
+
+  /** 지금 바라보는 방향. 멈춰도 마지막 방향을 유지한다. */
+  private facing: PersonPose = "down";
 
   /** 걸을 수 있는 칸 표. 길찾기에 쓴다. */
   private walkable: boolean[][] = [];
@@ -342,25 +348,28 @@ export class WorldScene extends Phaser.Scene {
     // 아래쪽에 있는 것이 앞에 그려지도록 y값을 깊이로 쓴다.
     this.player.setDepth(this.player.y);
 
-    this.anims.create({
-      key: "player-idle",
-      frames: [{ key: PLAYER_KEY, frame: 0 }],
-      frameRate: 1,
+    // 방향마다 서 있기 / 걷기 두 벌씩 만든다.
+    PERSON_POSES.forEach((pose) => {
+      this.anims.create({
+        key: idleKey(pose),
+        frames: [{ key: PLAYER_KEY, frame: personFrame(pose, 0) }],
+        frameRate: 1,
+      });
+
+      this.anims.create({
+        key: walkKey(pose),
+        frames: [
+          { key: PLAYER_KEY, frame: personFrame(pose, 1) },
+          { key: PLAYER_KEY, frame: personFrame(pose, 0) },
+          { key: PLAYER_KEY, frame: personFrame(pose, 2) },
+          { key: PLAYER_KEY, frame: personFrame(pose, 0) },
+        ],
+        frameRate: 8,
+        repeat: -1,
+      });
     });
 
-    this.anims.create({
-      key: "player-walk",
-      frames: [
-        { key: PLAYER_KEY, frame: 1 },
-        { key: PLAYER_KEY, frame: 0 },
-        { key: PLAYER_KEY, frame: 2 },
-        { key: PLAYER_KEY, frame: 0 },
-      ],
-      frameRate: 8,
-      repeat: -1,
-    });
-
-    this.player.play("player-idle");
+    this.player.play(idleKey(this.facing));
   }
 
   // ────────────────────────────────────────────────────────────
@@ -455,6 +464,8 @@ export class WorldScene extends Phaser.Scene {
         fontFamily: "monospace",
         fontSize: "12px",
         color: "#f4b41b",
+        // 카메라가 3배로 늘리므로 글자 그림도 3배로 구워야 또렷하다.
+        resolution: CAMERA_ZOOM,
       })
       .setOrigin(0.5, 1)
       .setDepth(10_000)
@@ -472,6 +483,13 @@ export class WorldScene extends Phaser.Scene {
         color: "#3d2f1e",
         backgroundColor: "#f2e6d0",
         padding: { x: 4, y: 3 },
+        /*
+          Phaser는 글자를 그림으로 한 번 구운 뒤 화면에 붙인다.
+          9px로 구운 그림을 카메라가 3배로 늘리면, pixelArt 모드라
+          픽셀을 그대로 키워서 한글이 뭉개진다.
+          처음부터 3배 크기로 구우면 늘려도 1:1이라 또렷하다.
+        */
+        resolution: CAMERA_ZOOM,
       })
       .setOrigin(0.5, 1)
       .setDepth(10_000)
@@ -621,7 +639,7 @@ export class WorldScene extends Phaser.Scene {
   private interactWith(object: WorldObject) {
     // 창이 열려 있는 동안 캐릭터가 계속 걷지 않도록 멈춘다.
     this.player.setVelocity(0, 0);
-    this.player.play("player-idle");
+    this.player.play(idleKey(this.facing));
 
     // 고양이가 같은 곳으로 계속 안내하지 않도록 본 것으로 표시한다.
     this.visited.add(object.id);
@@ -690,13 +708,16 @@ export class WorldScene extends Phaser.Scene {
     const isMoving = velocity.x !== 0 || velocity.y !== 0;
 
     if (isMoving) {
-      this.player.setFlipX(velocity.x < 0);
+      this.facing = poseFor(velocity);
 
-      if (this.player.anims.currentAnim?.key !== "player-walk") {
-        this.player.play("player-walk");
-      }
-    } else if (this.player.anims.currentAnim?.key !== "player-idle") {
-      this.player.play("player-idle");
+      // 왼쪽은 따로 그리지 않고 옆모습을 뒤집어 쓴다.
+      this.player.setFlipX(this.facing === "side" && velocity.x < 0);
+    }
+
+    const wanted = isMoving ? walkKey(this.facing) : idleKey(this.facing);
+
+    if (this.player.anims.currentAnim?.key !== wanted) {
+      this.player.play(wanted);
     }
   }
 
@@ -844,4 +865,26 @@ function hopOffset(time: number, phase: number): number {
   if (progress > 0.12) return 0;
 
   return -Math.sin((progress / 0.12) * Math.PI) * HOP_PIXELS;
+}
+
+/**
+ * 속도로부터 바라볼 방향을 정한다.
+ *
+ * 가로 성분이 더 크면 옆모습, 아니면 위아래.
+ * 대각선으로 걸을 때 방향이 떨리지 않도록 한쪽을 확실히 고른다.
+ */
+function poseFor(velocity: Phaser.Math.Vector2): PersonPose {
+  if (Math.abs(velocity.x) > Math.abs(velocity.y)) {
+    return "side";
+  }
+
+  return velocity.y < 0 ? "up" : "down";
+}
+
+function idleKey(pose: PersonPose) {
+  return `player-${pose}-idle`;
+}
+
+function walkKey(pose: PersonPose) {
+  return `player-${pose}-walk`;
 }

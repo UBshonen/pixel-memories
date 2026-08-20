@@ -128,30 +128,64 @@ const VILLAGER_COLORS: PersonColors[] = [
   { hair: 0x6b5340, skin: 0xecc39a, shirt: 0x8a6bb0, pants: 0x40384f },
 ];
 
-/** 프레임별 다리 모양. [x, y, 너비, 높이] 두 개씩. */
-const LEGS_BY_FRAME: [number, number, number, number][][] = [
-  // 0 — 서 있기
+/**
+ * 사람이 바라보는 방향.
+ *
+ * 왼쪽은 따로 그리지 않고 side를 좌우로 뒤집어 쓴다.
+ * 그림 양이 12장에서 9장으로 줄고, 픽셀 RPG에서 흔히 쓰는 방식이다.
+ */
+export type PersonPose = "down" | "up" | "side";
+
+export const PERSON_POSES: PersonPose[] = ["down", "up", "side"];
+
+/** pose와 걷기 자세로 스프라이트 프레임 번호를 구한다. */
+export function personFrame(pose: PersonPose, legFrame: number): number {
+  return PERSON_POSES.indexOf(pose) * WALK_FRAME_COUNT + legFrame;
+}
+
+/** 앞·뒤를 볼 때의 다리. [x, y, 너비, 높이] 두 개씩. */
+const LEGS_FRONT: [number, number, number, number][][] = [
   [
     [3, 11, 2, 4],
     [7, 11, 2, 4],
   ],
-  // 1 — 왼발 앞으로
   [
     [2, 11, 3, 4],
     [7, 11, 2, 3],
   ],
-  // 2 — 오른발 앞으로
   [
     [3, 11, 2, 3],
     [7, 11, 3, 4],
   ],
 ];
 
-/** 사람 한 명을 originX 위치에 그린다. */
+/** 옆을 볼 때의 다리. 몸이 좁아진 만큼 안쪽으로 모은다. */
+const LEGS_SIDE: [number, number, number, number][][] = [
+  [
+    [4, 11, 2, 4],
+    [6, 11, 2, 4],
+  ],
+  [
+    [3, 11, 3, 4],
+    [6, 11, 2, 3],
+  ],
+  [
+    [4, 11, 2, 3],
+    [6, 11, 3, 4],
+  ],
+];
+
+/**
+ * 사람 한 명을 originX 위치에 그린다.
+ *
+ * 뒤를 볼 때는 얼굴이 없고 머리카락이 그 자리를 덮는다.
+ * 이것이 있어야 위로 걸어갈 때 얼굴이 따라오는 어색함이 사라진다.
+ */
 function drawPerson(
   g: Phaser.GameObjects.Graphics,
   originX: number,
   colors: PersonColors,
+  pose: PersonPose,
   legFrame: number,
 ) {
   const rect = (x: number, y: number, w: number, h: number, color: number) => {
@@ -159,13 +193,29 @@ function drawPerson(
     g.fillRect(originX + x, y, w, h);
   };
 
-  rect(2, 0, 8, 3, colors.hair); // 머리카락
-  rect(3, 3, 6, 3, colors.skin); // 얼굴
-  rect(2, 6, 8, 5, colors.shirt); // 몸통
-  rect(1, 7, 1, 3, colors.skin); // 왼팔
-  rect(10, 7, 1, 3, colors.skin); // 오른팔
+  if (pose === "side") {
+    rect(3, 0, 6, 3, colors.hair); // 머리카락
+    rect(3, 3, 2, 2, colors.hair); // 뒤통수
+    rect(5, 3, 4, 3, colors.skin); // 옆얼굴
+    rect(3, 6, 6, 5, colors.shirt); // 몸통
+    rect(7, 7, 1, 3, colors.skin); // 앞쪽 팔 하나만 보인다
+  } else {
+    rect(2, 0, 8, 3, colors.hair); // 머리카락
 
-  LEGS_BY_FRAME[legFrame].forEach(([x, y, w, h]) => rect(x, y, w, h, colors.pants));
+    if (pose === "down") {
+      rect(3, 3, 6, 3, colors.skin); // 얼굴
+    } else {
+      rect(2, 3, 8, 3, colors.hair); // 뒤통수 — 얼굴이 보이지 않는다
+    }
+
+    rect(2, 6, 8, 5, colors.shirt); // 몸통
+    rect(1, 7, 1, 3, colors.skin); // 왼팔
+    rect(10, 7, 1, 3, colors.skin); // 오른팔
+  }
+
+  const legs = pose === "side" ? LEGS_SIDE : LEGS_FRONT;
+
+  legs[legFrame].forEach(([x, y, w, h]) => rect(x, y, w, h, colors.pants));
 }
 
 /**
@@ -186,28 +236,44 @@ function sliceIntoFrames(
   }
 }
 
+/**
+ * 플레이어는 방향 3벌 x 걷기 3자세 = 9프레임.
+ *
+ * 프레임 순서는 personFrame()이 계산한다.
+ *   0,1,2  앞모습    3,4,5  뒷모습    6,7,8  옆모습
+ */
 function createPlayerTexture(scene: Phaser.Scene) {
   const g = scene.add.graphics();
 
-  for (let frame = 0; frame < WALK_FRAME_COUNT; frame++) {
-    drawPerson(g, frame * PERSON_WIDTH, PLAYER_COLORS, frame);
-  }
+  PERSON_POSES.forEach((pose) => {
+    for (let legFrame = 0; legFrame < WALK_FRAME_COUNT; legFrame++) {
+      drawPerson(
+        g,
+        personFrame(pose, legFrame) * PERSON_WIDTH,
+        PLAYER_COLORS,
+        pose,
+        legFrame,
+      );
+    }
+  });
 
-  g.generateTexture(PLAYER_KEY, WALK_FRAME_COUNT * PERSON_WIDTH, PERSON_HEIGHT);
+  const frameCount = PERSON_POSES.length * WALK_FRAME_COUNT;
+
+  g.generateTexture(PLAYER_KEY, frameCount * PERSON_WIDTH, PERSON_HEIGHT);
   g.destroy();
 
-  sliceIntoFrames(scene, PLAYER_KEY, WALK_FRAME_COUNT, PERSON_WIDTH, PERSON_HEIGHT);
+  sliceIntoFrames(scene, PLAYER_KEY, frameCount, PERSON_WIDTH, PERSON_HEIGHT);
 }
 
 /**
- * 주민은 서 있기 자세만 필요하다. 외형 종류만큼 프레임을 만든다.
+ * 주민은 서 있는 앞모습만 있으면 된다. 걷지 않기 때문이다.
  * 프레임 번호가 곧 WorldObject.variant 값이다.
  */
 function createVillagerTexture(scene: Phaser.Scene) {
   const g = scene.add.graphics();
 
   VILLAGER_COLORS.forEach((colors, index) => {
-    drawPerson(g, index * PERSON_WIDTH, colors, 0);
+    drawPerson(g, index * PERSON_WIDTH, colors, "down", 0);
   });
 
   g.generateTexture(VILLAGER_KEY, VILLAGER_VARIANTS * PERSON_WIDTH, PERSON_HEIGHT);
