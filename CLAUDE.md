@@ -27,6 +27,7 @@ docs/STATUS.md      ← 항상 이것부터. 현재 상태와 다음 작업.
 docs/BACKLOG.md     미룬 것과 그 이유. "이거 왜 안 했지?" 싶을 때.
 docs/BLUEPRINT.md   기획·아키텍처. 방향을 다룰 때만.
 docs/notes/         개념 정리. 해당 주제를 건드릴 때만.
+docs/INTERVIEW.md   사람이 읽는 면접 대비 메모. AI는 읽지 않아도 된다.
 ```
 
 **전부 읽지 말 것.** 기본은 STATUS.md 하나다.
