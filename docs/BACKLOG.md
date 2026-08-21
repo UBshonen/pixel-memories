@@ -200,9 +200,13 @@ React가 컴포넌트를 두 번 실행하며 게임을 만들었다 부수는 �
 ## 배포 전 정리 체크리스트
 
 ```text
-[ ] gameConfig.ts 의 physics.arcade.debug 를 false 로
-[ ] README 정비
+[x] gameConfig.ts 의 physics.arcade.debug 를 false 로
+[x] README 정비
+[x] 안 쓰는 기본 에셋 제거
+[x] 정적 내보내기 설정 · OG 이미지 헤더 대응
 [ ] 예시 내용(data/) 을 실제 내용으로 교체
 [ ] 실제 사진으로 교체
-[ ] 실제 폰에서 조작 확인
+[ ] 실제 폰에서 조작 확인 (배포 후)
 ```
+
+**절차는 [DEPLOY.md](DEPLOY.md) 에 있다.**
