@@ -2,6 +2,18 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /**
+   * 정적 내보내기.
+   *
+   * 이 앱은 서버에서 실행되는 코드가 하나도 없다. 모든 페이지가 빌드 시점에
+   * HTML로 만들어지고, 카카오톡 미리보기 이미지까지 그때 그려진다.
+   *
+   * 그래서 서버 없이 파일만 올리면 되는 곳(GitHub Pages, Cloudflare Pages 등)
+   * 어디에나 배포할 수 있다. 결과물은 out/ 폴더에 나온다.
+   *
+   * 나중에 방명록처럼 서버가 필요한 기능을 넣으면 이 줄을 지워야 한다.
+   */
+  output: "export",
+  /**
    * 개발 서버에 다른 기기(폰 등)로 접속하기 위한 설정.
    *
    * Next.js는 개발 모드에서 `/_next/*` 같은 내부 자원에 대한 교차 출처 요청을

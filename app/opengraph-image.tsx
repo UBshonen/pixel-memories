@@ -11,6 +11,13 @@ import { WEDDING } from "@/data/wedding";
  * 주의 — 이 파일은 브라우저가 아니라 서버에서 그려진다.
  * flexbox만 쓸 수 있고, 자식이 둘 이상인 요소에는 display: flex를 꼭 적어야 한다.
  */
+/**
+ * 정적 내보내기(output: export)에서는 이 라우트를 빌드 시점에 미리 그리라고
+ * 명시해야 한다. 그러지 않으면 Next.js가 "요청이 올 때 만들 셈이냐"고 묻고 멈춘다.
+ * 내용이 사람마다 다르지 않으므로 미리 만들어 두는 것이 맞다.
+ */
+export const dynamic = "force-static";
+
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const alt = `${WEDDING.groom} ♥ ${WEDDING.bride} 결혼합니다`;
