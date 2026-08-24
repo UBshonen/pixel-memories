@@ -10,8 +10,6 @@
 
 # 다른 컴퓨터에서 이어서 하기
 
-처음 여는 컴퓨터라면 이것만 하면 된다.
-
 ```bash
 git clone https://github.com/UBshonen/pixel-memories.git
 cd pixel-memories
@@ -21,29 +19,8 @@ npm run dev
 
 이미 클론돼 있으면 `git pull` 부터.
 
-```text
-필요한 것    Node 22 이상 (Next.js 16이 요구한다)
-확인         node --version
-```
-
-## 잘 돌아가는지 확인
-
-```bash
-npm run dev      # localhost:3000 — 시작 화면이 뜨고 [입장하기]가 되면 정상
-npx tsc --noEmit
-npm run lint
-npm run build    # out/ 폴더가 생기면 정상
-```
-
-## 폰에서 볼 때
-
-Next가 출력하는 "Network" 주소는 **믿지 말 것.** 가상 어댑터를 고를 때가 있다.
-
-```bash
-powershell -Command "(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias 'Wi-Fi').IPAddress"
-```
-
-이 주소로 `http://<주소>:3000` 접속. 안 되면 [notes/mobile-testing.md](notes/mobile-testing.md).
+**Node 22 이상이 필요하다.** 설치·확인·폰 테스트·Windows 특이사항·자주 겪는 문제는
+[SETUP.md](SETUP.md) 에 정리해뒀다. 환경이 처음이면 그것부터 본다.
 
 ---
 
