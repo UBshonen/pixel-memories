@@ -5,6 +5,45 @@
 
 ---
 
+# 0. 지금 개발 중인 환경 (2026-08-21 기준)
+
+**다른 컴퓨터에 같은 환경을 만들 때 이 값들을 맞추면 된다.**
+버전이 조금 달라도 대체로 동작하지만, **Node 만은 22 이상이어야 한다.**
+
+```text
+OS        Windows 11
+Node      v22.17.1
+npm       10.9.2
+Git       2.55.0
+셸        PowerShell (Git Bash 도 함께 씀)
+에디터     VS Code + Claude Code
+```
+
+## Git 설정
+
+```bash
+git config --global user.name  "ub"
+git config --global user.email "theurain1@gmail.com"
+git config --global core.autocrlf true
+```
+
+`core.autocrlf true` 는 Windows 에서 흔한 설정이다.
+저장소에는 LF 로 저장하고 작업 폴더에는 CRLF 로 꺼내온다.
+`npm run` 할 때 나오는 줄바꿈 경고가 이것 때문인데 **문제는 없다.**
+
+## 전역 설치
+
+**따로 없다.** 프로젝트에 필요한 것은 전부 `npm install` 로 들어간다.
+
+```text
+전역으로 깔 필요 없는 것들
+  next, phaser, typescript, eslint  →  전부 프로젝트 의존성
+```
+
+`npx` 가 프로젝트 안의 것을 찾아 쓰므로 `npx tsc`, `npx next` 로 실행하면 된다.
+
+---
+
 # 1. 필요한 것
 
 ```text
