@@ -1,9 +1,31 @@
-# 배포 절차서 — Cloudflare Pages
+# 배포 절차서 — Cloudflare Workers
 
 > **혼자 따라 할 수 있게 적었다.** 위에서부터 순서대로 하면 된다.
 > 원리가 궁금하면 [INTERVIEW.md](INTERVIEW.md) §11.
 
-**작성일** 2026-08-21 · **상태** 코드 준비 완료, 계정 연결부터 하면 됨
+**갱신일** 2026-08-21
+
+---
+
+# 여기서 멈췄다 (내일 여기부터)
+
+```text
+[x] Cloudflare 가입
+[x] Workers 프로젝트 pixel-memories 생성, GitHub 저장소 연결
+    App 방식으로 연결됐으므로 push 하면 자동 배포된다
+[x] 빌드 설정 + 환경변수 두 개
+[x] Deploy 눌러 첫 빌드 실행
+    Initializing / Cloning / Installing / Building 모두 성공
+    Deploying 진행 중인 상태에서 중단
+[ ] 배포 완료 확인 → 주소 확보     ← 내일 첫 할 일
+[ ] 아래 4장 배포 후 확인
+```
+
+**첫 할 일** — Cloudflare 대시보드에서 `pixel-memories` → `Deployments` 를 열어
+빌드가 성공했는지 보고 주소를 확인한다.
+```text
+예상 주소  https://pixel-memories.theurain1.workers.dev
+```
 
 ---
 
@@ -197,15 +219,19 @@ webhook 등록      내가 push 하면 GitHub 이 Cloudflare 에 알려준다
 Cloudflare 는 내 프로젝트가 뭔지 모른다. 두 가지를 알려줘야 한다.
 
 ```text
-Build command   npm run build   → 남의 컴퓨터에서 실행할 명령
-Build output    out             → 결과물이 어느 폴더에 생기는지
+어떻게 만드나    npm run build          → 대시보드의 Build command
+결과가 어디 있나  assets.directory: ./out → 저장소의 wrangler.jsonc
 ```
 
 **`out` 인 이유** — `next.config.ts` 의 `output: "export"` 때문에
 빌드 결과가 `out/` 에 나온다. `.next` 는 서버 실행용 중간 산출물이라
 그걸 올리면 아무것도 안 뜬다.
 
-Cloudflare 는 `Build output` 폴더 안의 파일을 **전 세계 서버에 복사**한다.
+**출력 위치를 대시보드가 아니라 파일에 적은 이유** — 대시보드 설정은
+Cloudflare 계정 안에만 남는다. 저장소에 두면 git log 에 이유와 함께 남고,
+클론만 하면 누구나 같은 배포를 재현할 수 있다. 이걸 **Infrastructure as Code** 라고 한다.
+
+Cloudflare 는 그 폴더 안의 파일을 **전 세계 서버에 복사**한다.
 
 ## 환경변수 — 환경마다 달라지는 값
 
@@ -253,59 +279,82 @@ https://dash.cloudflare.com/sign-up
 
 이메일과 비밀번호만 받는다. **카드도 전화번호도 안 물어본다.**
 
-> Vercel은 계정 문제로 접었다. 삭제한 계정과 같은 이메일로는 재가입이 막힌다.
-> 지원팀 문의는 2~3일 걸린다.
+> Vercel 은 계정 문제로 접었다. 삭제한 계정과 같은 이메일로는 재가입이 막힌다.
+> 경위는 [INTERVIEW.md](INTERVIEW.md) §11-8.
 
 ---
 
 # 2. 저장소 연결
 
-**① 왼쪽 메뉴 `Compute (Workers)` → `Pages` 탭 → `Connect to Git`**
+**`Workers & Pages` → `Create application` → `Continue with GitHub`**
 
-**② GitHub 연결 → `pixel-memories` 선택**
+## Pages 가 아니라 Workers 다
 
-권한 범위를 물으면 **`Only select repositories`로 이 저장소만** 고른다.
-다른 저장소까지 권한을 줄 이유가 없다.
+원래 둘은 용도가 달랐다.
+
+```text
+Pages     만들어진 파일을 나눠준다      정적 사이트용
+Workers   요청이 올 때 코드를 실행한다   서버용
+```
+
+2024년에 Workers 가 정적 파일도 나눠줄 수 있게 되면서 경계가 사라졌다.
+**Cloudflare 는 Pages 를 유지보수 모드로 두고 신규 프로젝트는 Workers 를 권장한다.**
+2026-03 기준 정적 자산·커스텀 도메인 모두 기능이 같고 `_headers` 도 그대로 동작한다.
+
+## 저장소 고르기
+
+계정 드롭다운에서 `UBshonen` → 목록에서 `pixel-memories` **클릭**.
+
+**`Clone a public repository via Git URL` 은 펼치지 않는다.**
+펼치면 Cloudflare 가 그 방식으로 인식해서 URL 을 필수로 요구한다.
+그 방식은 webhook 이 안 깔려 **자동 배포가 되지 않는다.**
+
+권한 범위는 `Only select repositories` 로 이 저장소만 준다(최소 권한 원칙).
 
 ---
 
-# 3. 빌드 설정 — 여기가 핵심
-
-Cloudflare가 Next.js를 감지하면 **서버 실행용 설정을 제안할 수 있다.**
-우리는 정적이라 다르다. 아래 값으로 맞춘다.
+# 3. 빌드 설정
 
 ```text
-Project name         pixel-memories
-Framework preset     None   (또는 Next.js Static Export)
-Build command        npm run build
-Build output         out
+Build command                        npm run build
+Deploy command                       npx wrangler deploy
+Non-production branch deploy command npx wrangler versions upload   (기본값)
+Root directory                       /
+Builds for non-production branches   켜둔다
+Protect with Cloudflare Access       끈다
+API token                            자동 생성 그대로
 ```
 
-**`Build output`이 `out`인 것이 가장 중요하다.**
-기본값이 `.next` 나 빈칸이면 반드시 바꾼다.
+**`Build command` 가 회색이면 placeholder 다.** 직접 타이핑해서 검은 글씨로 만든다.
+
+**출력 폴더를 묻는 칸은 없다.** 저장소의 `wrangler.jsonc` 가
+`assets.directory: "./out"` 로 알려주기 때문이다.
+
+## Cloudflare Access 를 끄는 이유
+
+사이트 앞에 문지기를 세워 **로그인해야 들어오게** 하는 기능이다.
+사내 관리자 페이지용이지 청첩장용이 아니다. 켜면 하객이 못 본다.
 
 ## 환경변수 두 개
 
-`Environment variables` 를 펼치고 추가한다.
+`Advanced settings` 안에 있다.
 
 ```text
-NEXT_PUBLIC_SITE_URL   https://pixel-memories.pages.dev
+NEXT_PUBLIC_SITE_URL   https://pixel-memories.theurain1.workers.dev
 NODE_VERSION           22
 ```
 
-**`NEXT_PUBLIC_SITE_URL`** — 카카오톡 미리보기 이미지의 절대 경로를 만드는 데 쓰인다.
-빌드할 때 코드에 박히므로 **나중에 바꾸려면 다시 빌드해야 한다.**
+**`Encrypt` 는 누르지 않는다.** 암호화하면 나중에 값을 못 본다.
+두 값 다 비밀이 아니다 — `NEXT_PUBLIC_` 은 어차피 브라우저에 노출되는 값이고
+`NODE_VERSION` 은 그냥 숫자다.
 
-**`NODE_VERSION`** — 안 넣으면 오래된 Node로 빌드하다 실패할 수 있다.
+**주소 형태** — Workers 는 `<프로젝트명>.<계정 서브도메인>.workers.dev` 다.
+계정 서브도메인은 대시보드 오른쪽 `Account details` 에서 확인한다.
 
-> **프로젝트 이름이 이미 쓰이고 있으면** `pixel-memories-1` 등을 제안한다.
-> 그 경우 `NEXT_PUBLIC_SITE_URL` 도 그 주소로 맞춰야 한다. 안 맞으면
-> 카카오톡 미리보기 이미지가 깨진다.
-
-**`Save and Deploy`** — 2~3분 걸린다.
+값이 틀리면 카카오톡 미리보기 이미지가 깨진다.
+배포 후 실제 주소가 다르면 값만 고치고 **재배포**한다(재시작으로는 안 바뀐다).
 
 ---
-
 # 4. 배포 후 확인
 
 ## 브라우저에서

@@ -28,24 +28,31 @@ npm run dev
 
 ## 한 줄 요약
 
-**기능은 완성됐고 배포만 남았다.** 코드 준비는 끝나 있다.
+**첫 배포를 실행했고 결과 확인만 남았다.**
 
 그래픽은 전부 **코드로 그린 임시 그림**이고, 내용은 **예시 데이터**다.
 
-## 다음 작업 — 배포
+## 다음 작업 — 배포 결과 확인
 
-**[DEPLOY.md](DEPLOY.md) 를 위에서부터 따라 하면 된다.** 혼자 할 수 있게 적어뒀다.
+**[DEPLOY.md](DEPLOY.md) 맨 위 "여기서 멈췄다" 부터 이어가면 된다.**
 
 ```text
-[x] 정적 내보내기 (output: "export") — 서버 없이 파일만으로 배포 가능
-[x] OG 라우트 force-static
-[x] public/_headers — OG 이미지 MIME 타입 + 캐시
-[x] README 정비, 안 쓰는 에셋 제거, debug false
-[x] 로컬 빌드 통과
-[ ] Cloudflare Pages 가입 → 저장소 연결 → 배포    ← 여기부터
+[x] 배포 준비 (정적 내보내기 · OG 헤더 · README · wrangler.jsonc)
+[x] Cloudflare 가입, Workers 프로젝트 생성, GitHub 저장소 연결
+[x] 빌드 설정 + 환경변수 두 개 (NODE_VERSION, NEXT_PUBLIC_SITE_URL)
+[x] 첫 Deploy 실행 — Building 까지 성공, Deploying 중 자리를 뜸
+[ ] 배포 성공 확인 → 주소 확보          ← 내일 첫 할 일
 [ ] 폰 확인 · 카카오톡 미리보기 확인
 [ ] README / INTERVIEW 에 배포 주소 채우기
 ```
+
+```text
+예상 주소   https://pixel-memories.theurain1.workers.dev
+확인 위치   Cloudflare → Workers & Pages → pixel-memories → Deployments
+```
+
+**Cloudflare Pages 가 아니라 Workers 다.** Pages 는 유지보수 모드라
+신규 프로젝트는 Workers 를 쓰라고 Cloudflare 가 안내한다. 정적 자산 기능은 동등하다.
 
 **Vercel 은 접었다.** 구글로 가입한 계정을 지운 뒤 재가입이 막혔다(알려진 문제,
 지원팀 문의 2~3일). 경위와 대안 비교는 [INTERVIEW.md](INTERVIEW.md) §11-8.
