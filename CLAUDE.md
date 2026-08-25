@@ -107,6 +107,17 @@ npm run lint
 "무슨 일이 있었나"    → git log     (문서에 커밋 해시를 적지 않는다)
 ```
 
+## 문서는 언제 쓰나
+
+```text
+새로 알게 된 것       그때그때 쓴다     미루면 사라진다
+이미 있는 걸 재배치    나중에 한 번에    재료가 다 모여야 판단이 선다
+```
+
+notes/ 와 STATUS · BACKLOG 는 작업 덩어리마다 갱신한다.
+INTERVIEW.md 는 개발이 끝난 뒤 한 번에 재구성한다
+(계획은 docs/archive/interview-plan.md).
+
 ## 커밋
 
 ```text
