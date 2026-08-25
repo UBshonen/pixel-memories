@@ -1946,7 +1946,7 @@ game/objects/GuideCat.ts         왜 여기만 길찾기를 안 쓰는지
 
 ```text
 저장소     https://github.com/UBshonen/pixel-memories
-배포 주소   (배포 후 채운다)
+배포 주소   https://pixel-memories.theurain1.workers.dev
 ```
 
 **저장소를 보여줄 때 코드보다 `docs/`를 먼저 열어도 좋다.**

@@ -7,7 +7,15 @@
 
 ---
 
-# 여기서 멈췄다 (내일 여기부터)
+# 배포 완료 (2026-08-21)
+
+```text
+주소  https://pixel-memories.theurain1.workers.dev
+```
+
+아래는 기록용. 다시 배포할 일이 있으면 같은 순서를 따른다.
+
+## 진행 기록
 
 ```text
 [x] Cloudflare 가입

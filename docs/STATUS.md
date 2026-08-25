@@ -4,7 +4,7 @@
 > 세션이 끝날 때마다 갱신한다. 길어지면 잘라낸다.
 > 지나간 이야기는 `git log`, 미룬 것은 [BACKLOG.md](BACKLOG.md)에.
 
-**갱신일** 2026-08-21 · **브랜치** main · 작업 트리 깨끗, 전부 push 완료
+**갱신일** 2026-08-21 (배포 완료) · **브랜치** main · 작업 트리 깨끗, 전부 push 완료
 
 ---
 
@@ -28,28 +28,32 @@ npm run dev
 
 ## 한 줄 요약
 
-**첫 배포를 실행했고 결과 확인만 남았다.**
+**배포 완료.** https://pixel-memories.theurain1.workers.dev
+
+기능은 전부 동작한다. 남은 건 그림과 실제 내용이다.
 
 그래픽은 전부 **코드로 그린 임시 그림**이고, 내용은 **예시 데이터**다.
 
-## 다음 작업 — 배포 결과 확인
-
-**[DEPLOY.md](DEPLOY.md) 맨 위 "여기서 멈췄다" 부터 이어가면 된다.**
+## 배포 — 끝났다
 
 ```text
-[x] 배포 준비 (정적 내보내기 · OG 헤더 · README · wrangler.jsonc)
-[x] Cloudflare 가입, Workers 프로젝트 생성, GitHub 저장소 연결
-[x] 빌드 설정 + 환경변수 두 개 (NODE_VERSION, NEXT_PUBLIC_SITE_URL)
-[x] 첫 Deploy 실행 — Building 까지 성공, Deploying 중 자리를 뜸
-[ ] 배포 성공 확인 → 주소 확보          ← 내일 첫 할 일
-[ ] 폰 확인 · 카카오톡 미리보기 확인
-[ ] README / INTERVIEW 에 배포 주소 채우기
+주소   https://pixel-memories.theurain1.workers.dev
+호스팅  Cloudflare Workers (무료 플랜, 카드 미등록)
+자동   main 에 push 하면 자동 재배포된다
 ```
 
+**검증 완료** — 페이지 200, OG 이미지가 image/png 로 내려옴(_headers 적용),
+og:image 가 절대 주소로 박힘(NEXT_PUBLIC_SITE_URL 적용), 사진·약도 SVG 정상.
+
+## 다음 작업 — 배포 후 남은 확인
+
 ```text
-예상 주소   https://pixel-memories.theurain1.workers.dev
-확인 위치   Cloudflare → Workers & Pages → pixel-memories → Deployments
+[ ] 폰에서 열어 복사·공유 버튼이 실제로 동작하는지   ← https 라 이제 될 것
+[ ] 카카오톡으로 링크 보내서 미리보기 카드 확인
+[ ] 폰에서 스크린샷 찍어 README 에 추가
 ```
+
+그다음은 아래 "배포 다음 — 큰 덩어리 셋".
 
 **Cloudflare Pages 가 아니라 Workers 다.** Pages 는 유지보수 모드라
 신규 프로젝트는 Workers 를 쓰라고 Cloudflare 가 안내한다. 정적 자산 기능은 동등하다.

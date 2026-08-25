@@ -5,9 +5,9 @@
 스크롤로 읽는 청첩장이 아니라, 하객이 작은 마을을 직접 걸어다니며
 신랑·신부의 추억과 결혼식 정보를 발견하는 모바일 웹입니다.
 
-<!-- 배포 후 채웁니다
-**[👉 데모 보기](https://example.vercel.app)**
+**[👉 데모 보기](https://pixel-memories.theurain1.workers.dev)**
 
+<!-- 스크린샷은 폰에서 찍어 추가할 것
 ![스크린샷](docs/screenshot.png)
 -->
 
@@ -147,7 +147,7 @@ docs/notes/         개념 정리
 ✓ 추억 · NPC 대화 · 결혼식 정보 · 계좌 · 공유
 ✓ 카카오톡 미리보기
 ✓ 모바일 조작
+✓ 배포 (Cloudflare Workers)
 □ 픽셀 아트 교체
 □ 방명록 (서버)
-□ 배포
 ```
