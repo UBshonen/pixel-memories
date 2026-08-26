@@ -237,8 +237,11 @@ WorldScene 이 450줄을 넘었다. 다음에 크게 손대면 `game/player/` �
 때문이다. 계획은 [archive/interview-plan.md](archive/interview-plan.md) 에 있다.
 그때까지는 무언가를 접을 때마다 [BACKLOG.md](BACKLOG.md) 의 "버린 것" 에 한 줄씩 쌓는다.
 
-개념 자체는 [notes/web-dev-map.md](notes/web-dev-map.md) 에 따로 쓰고 있다.
-React · Next.js 가 왜 존재하고 어디에 끼는지를 순서대로 세우는 문서다. 3장까지 썼다.
+개념 자체는 [notes/web-dev-map.md](notes/web-dev-map.md) 에 따로 정리했다.
+React · Next.js · TypeScript 가 왜 존재하고 어디에 끼는지를 순서대로 세운 문서다.
+**0~7장 완결.** 방명록을 만들면 1장의 "동적" 칸과 3장 SSG 자리를 손봐야 한다.
+
+AI 가 자연어 지시로 커밋·배포까지 하는 구조는 [notes/ai-workflow.md](notes/ai-workflow.md).
 
 ---
 
