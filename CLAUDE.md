@@ -29,6 +29,7 @@ docs/BACKLOG.md     미룬 것·버린 것과 그 이유. "이거 왜 안 했지
 docs/BLUEPRINT.md   기획·아키텍처. 방향을 다룰 때만.
 docs/notes/         개념 정리. 해당 주제를 건드릴 때만.
                     web-dev-map.md 는 사람이 읽는 기술 지도.
+                    ai-workflow.md 는 자연어가 커밋·배포가 되는 구조.
 docs/DEPLOY.md      배포 절차서. 배포할 때만.
 docs/INTERVIEW.md   사람이 읽는 면접 대비 메모. AI는 읽지 않아도 된다.
 ```
